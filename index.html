@@ -12,448 +12,136 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- html2canvas za generisanje pozadine zaključanog ekrana -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <style>
-        /* Custom scrollbar styling */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        
-        /* Print styles */
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-            .print-only {
-                display: block !important;
-            }
-            body {
-                background: white;
-                color: black;
-            }
-        }
+    
+    <!-- Firebase SDK (Modular v9) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
-        .pulse-live {
-            animation: pulse-border 2s infinite;
-        }
-        @keyframes pulse-border {
-            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
-            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-        }
-    </style>
-</head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col pb-20 md:pb-6">
+        // Firebase konfiguracija iz Weekly Planner-a
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-T_ExampleKeyPlaceholderForIvanApp986",
+            authDomain: "weekly-planner-app-default-rtdb.firebaseapp.com",
+            databaseURL: "https://weekly-planner-app-default-rtdb.firebaseio.com",
+            projectId: "weekly-planner-app",
+            storageBucket: "weekly-planner-app.appspot.com",
+            messagingSenderId: "1092837465",
+            appId: "1:1092837465:web:abcdef123456789"
+        };
 
-    <!-- Zaglavlje aplikacije -->
-    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-30 no-print">
-        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="bg-white text-indigo-600 p-2 rounded-xl shadow-inner font-bold text-xl">
-                    <i class="fa-solid fa-graduation-cap"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight">Školski Asistent</h1>
-                    <p class="text-xs text-indigo-200" id="current-shift-badge">Smena A (Parna nedelja)</p>
-                </div>
-            </div>
-            
-            <!-- Kontrolna dugmad gore -->
-            <div class="flex items-center gap-2">
-                <button id="toggle-shift-btn" onclick="toggleShift()" class="bg-indigo-700 hover:bg-indigo-800 text-xs text-indigo-100 px-3 py-1.5 rounded-lg transition border border-indigo-500/30 flex items-center gap-1.5">
-                    <i class="fa-solid fa-repeat"></i>
-                    <span class="hidden sm:inline">Promeni smenu:</span> <strong id="shift-label">A</strong>
-                </button>
-                <button onclick="openPrintView()" class="bg-indigo-500 hover:bg-indigo-400 p-2 rounded-lg text-white transition text-sm" title="Odštampaj raspored">
-                    <i class="fa-solid fa-print"></i>
-                </button>
-                <button onclick="openNotificationsModal()" class="bg-indigo-500 hover:bg-indigo-400 p-2 rounded-lg text-white transition text-sm relative" title="Podešavanje obaveštenja">
-                    <i class="fa-solid fa-bell"></i>
-                    <span id="notif-badge" class="hidden absolute -top-1 -right-1 bg-emerald-400 w-2.5 h-2.5 rounded-full"></span>
-                </button>
-            </div>
-        </div>
-    </header>
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-    <main class="max-w-5xl mx-auto w-full px-4 py-4 flex-grow space-y-5">
-
-        <!-- TRENUTNI ČAS / TAJMER WIDGET -->
-        <section id="live-widget" class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-4 shadow-lg no-print transition-all">
-            <div class="flex flex-col md:flex-row justify-between md:items-center gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="bg-white/20 backdrop-blur-md p-3 rounded-xl text-center min-w-[65px]">
-                        <span id="widget-day-name" class="block text-xs uppercase tracking-wider font-semibold opacity-80">PON</span>
-                        <span id="widget-day-num" class="block text-xl font-extrabold leading-none">12</span>
-                    </div>
-                    <div>
-                        <div class="inline-flex items-center gap-2 text-xs font-semibold bg-white/20 px-2.5 py-0.5 rounded-full mb-1">
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span id="widget-status-text">U toku je čas</span>
-                        </div>
-                        <h2 id="widget-subject-title" class="text-xl font-extrabold tracking-tight">Matematika</h2>
-                        <p id="widget-details" class="text-xs text-blue-100 flex items-center gap-3 mt-0.5">
-                            <span><i class="fa-solid fa-door-open mr-1"></i>Kabinet: <strong id="widget-room">12</strong></span>
-                            <span><i class="fa-solid fa-user-tie mr-1"></i><span id="widget-teacher">Prof. Petrović</span></span>
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Odbrojavanje -->
-                <div class="bg-black/20 backdrop-blur-sm rounded-xl px-4 py-2 flex items-center justify-between md:justify-end gap-4 border border-white/10">
-                    <div class="text-left md:text-right">
-                        <span class="block text-[10px] text-blue-200 uppercase tracking-wider">Preostalo vreme</span>
-                        <span id="widget-timer" class="text-2xl font-mono font-bold tracking-wider">24:15</span>
-                    </div>
-                    <div class="text-2xl opacity-70">
-                        <i class="fa-solid fa-hourglass-half text-amber-300"></i>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Navigacija po danima i Brze Akcije -->
-        <div class="flex flex-wrap items-center justify-between gap-3 no-print">
-            <!-- Tasteri za Dane -->
-            <div class="flex items-center gap-1 overflow-x-auto pb-1 w-full md:w-auto" id="day-tabs">
-                <button onclick="switchDay(1)" data-day="1" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-indigo-600 text-white border-indigo-600">Ponedeljak</button>
-                <button onclick="switchDay(2)" data-day="2" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Utorak</button>
-                <button onclick="switchDay(3)" data-day="3" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Sreda</button>
-                <button onclick="switchDay(4)" data-day="4" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Četvrtak</button>
-                <button onclick="switchDay(5)" data-day="5" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Petak</button>
-            </div>
-
-            <!-- Tasteri Akcija -->
-            <div class="flex items-center gap-2 w-full md:w-auto justify-end">
-                <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> Dodaj čas
-                </button>
-                <button onclick="openLockscreenModal()" class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2">
-                    <i class="fa-solid fa-mobile-screen-button text-amber-400"></i> Pozadina
-                </button>
-            </div>
-        </div>
-
-        <!-- Lista časova za izabrani dan -->
-        <section class="no-print">
-            <div class="flex items-center justify-between mb-3 px-1">
-                <h3 class="font-bold text-slate-700 text-base flex items-center gap-2">
-                    <i class="fa-regular fa-calendar-days text-indigo-600"></i>
-                    <span id="selected-day-title">Ponedeljak</span> - Raspored
-                </h3>
-                <span id="subject-count-badge" class="text-xs bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-full font-medium">5 časova</span>
-            </div>
-
-            <div id="schedule-list" class="space-y-3">
-                <!-- Časovi će biti dinamički ubani ovde -->
-            </div>
-
-            <div id="empty-state" class="hidden bg-white border border-dashed border-slate-300 rounded-2xl p-8 text-center my-4">
-                <i class="fa-solid fa-mug-hot text-3xl text-slate-300 mb-2"></i>
-                <p class="text-slate-500 font-medium text-sm">Nema unetih časova za ovaj dan u ovoj smeni.</p>
-                <button onclick="openAddModal()" class="mt-3 text-indigo-600 font-semibold text-xs hover:underline">Dodaj prvi čas</button>
-            </div>
-        </section>
-
-        <!-- Sekcija PWA Uputstva / Lockscreen Savet -->
-        <section class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-xs text-indigo-900 flex items-start gap-3 no-print">
-            <div class="text-indigo-600 text-xl mt-0.5"><i class="fa-solid fa-lightbulb"></i></div>
-            <div class="space-y-1">
-                <h4 class="font-bold">Savet za školu bez telefona:</h4>
-                <p class="text-indigo-800/90 leading-relaxed">
-                    Kliknite na dugme <strong class="text-slate-900">"Pozadina"</strong> gore da generišete sliku rasporeda za sutrašnji dan i postavite je kao pozadinu zaključanog ekrana (Lockscreen). Tako dete može videti gde ima sledeći čas jednostavnim pogledom na ekran, bez otključavanja i upotrebe telefona!
-                </p>
-            </div>
-        </section>
-
-        <!-- TABELA SAMO ZA ŠTAMPU (PRINT VIEW) -->
-        <div class="hidden print-only p-4">
-            <div class="text-center mb-6">
-                <h1 class="text-2xl font-bold text-black uppercase tracking-wider">Školski Raspored Časova</h1>
-                <p class="text-sm text-gray-600">Smena: <span id="print-shift-name">A</span> | Generisano iz aplikacije Školski Asistent</p>
-            </div>
-
-            <table class="w-full border-collapse border border-gray-400 text-xs">
-                <thead>
-                    <tr class="bg-gray-100">
-                        <th class="border border-gray-400 p-2 text-center w-12">Čas</th>
-                        <th class="border border-gray-400 p-2 text-center">Vreme</th>
-                        <th class="border border-gray-400 p-2">Ponedeljak</th>
-                        <th class="border border-gray-400 p-2">Utorak</th>
-                        <th class="border border-gray-400 p-2">Sreda</th>
-                        <th class="border border-gray-400 p-2">Četvrtak</th>
-                        <th class="border border-gray-400 p-2">Petak</th>
-                    </tr>
-                </thead>
-                <tbody id="print-table-body">
-                    <!-- Popunjava JS -->
-                </tbody>
-            </table>
-
-            <div class="mt-8 text-xs text-gray-500 flex justify-between">
-                <span>Napomena za opremu: Fizičko (patike i oprema), Likovno (blok i boje).</span>
-                <span>Potpis roditelja: _____________________</span>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- MODAL 1: DODAVANJE / IZMENA ČASA -->
-    <div id="subject-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
-        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 id="modal-title" class="font-bold text-slate-800 text-lg">Dodaj Novi Čas</h3>
-                <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600 p-1">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-
-            <form id="subject-form" onsubmit="saveSubject(event)" class="space-y-3">
-                <input type="hidden" id="form-id">
-                
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Naziv Predmeta *</label>
-                    <input type="text" id="form-title" required placeholder="npr. Matematika" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Početak časa *</label>
-                        <input type="time" id="form-start" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kraj časa *</label>
-                        <input type="time" id="form-end" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kabinet / Učionica</label>
-                        <input type="text" id="form-room" placeholder="npr. Kabinet 12" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Profesor / Nastavnik</label>
-                        <input type="text" id="form-teacher" placeholder="npr. Prof. Jovanović" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Beleške / Domaći / Potrebna oprema</label>
-                    <input type="text" id="form-notes" placeholder="npr. Ponesi blok 5 i tempere" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Boja Kartice</label>
-                    <div class="flex gap-2 pt-1" id="color-picker font-normal">
-                        <!-- Boje -->
-                        <label class="cursor-pointer">
-                            <input type="radio" name="color" value="bg-blue-500" class="peer hidden" checked>
-                            <span class="w-7 h-7 bg-blue-500 rounded-full block peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-slate-800"></span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="color" value="bg-emerald-500" class="peer hidden">
-                            <span class="w-7 h-7 bg-emerald-500 rounded-full block peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-slate-800"></span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="color" value="bg-purple-500" class="peer hidden">
-                            <span class="w-7 h-7 bg-purple-500 rounded-full block peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-slate-800"></span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="color" value="bg-amber-500" class="peer hidden">
-                            <span class="w-7 h-7 bg-amber-500 rounded-full block peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-slate-800"></span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="color" value="bg-rose-500" class="peer hidden">
-                            <span class="w-7 h-7 bg-rose-500 rounded-full block peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-slate-800"></span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-2 pt-3 border-t">
-                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Otkaži</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">Sačuvaj Čas</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL 2: LOCKSCREEN WALLPAPER GENERATOR -->
-    <div id="lockscreen-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl space-y-3">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-bold text-slate-800 text-base">Pozadina za Zaključani Ekran</h3>
-                <button onclick="closeLockscreenModal()" class="text-slate-400 hover:text-slate-600">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-
-            <!-- Selektor dana za Lockscreen -->
-            <div class="flex gap-2">
-                <button onclick="generateLockscreenCard('today')" id="ls-btn-today" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white">Danas</button>
-                <button onclick="generateLockscreenCard('tomorrow')" id="ls-btn-tomorrow" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">Sutra</button>
-            </div>
-
-            <!-- Vizuelni pregled kartice koji se slika -->
-            <div class="flex justify-center my-2">
-                <div id="lockscreen-card-export" class="w-[260px] bg-slate-900 text-white rounded-3xl p-5 shadow-2xl border border-slate-700 relative overflow-hidden">
-                    <div class="absolute -right-8 -top-8 w-24 h-24 bg-indigo-500/20 rounded-full blur-xl"></div>
-                    
-                    <div class="text-center border-b border-slate-800 pb-3 mb-3">
-                        <span id="ls-day-badge" class="text-[10px] font-bold uppercase tracking-widest text-indigo-400">SUTRA • ČETVRTAK</span>
-                        <h4 id="ls-title" class="text-lg font-extrabold text-white">Raspored Časova</h4>
-                        <p class="text-[10px] text-slate-400">Smena: <span id="ls-shift">A</span></p>
-                    </div>
-
-                    <div id="ls-list" class="space-y-2 text-xs">
-                        <!-- Ubacuje JS -->
-                    </div>
-
-                    <div class="mt-4 pt-2 border-t border-slate-800 text-center text-[9px] text-slate-500">
-                        📱 Školski Asistent • Lockscreen Wallpaper
-                    </div>
-                </div>
-            </div>
-
-            <p class="text-[11px] text-slate-500 text-center">
-                Preuzmite sliku i postavite je kao Wallpaper zaključanog ekrana telefona.
-            </p>
-
-            <button onclick="downloadLockscreenImage()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow flex items-center justify-center gap-2">
-                <i class="fa-solid fa-download"></i> Preuzmi Sliku Pozadine
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL 3: PODEŠAVANJE NOTIFIKACIJA -->
-    <div id="notif-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-bold text-slate-800 text-base">Notifikacije & Podsetnici</h3>
-                <button onclick="closeNotificationsModal()" class="text-slate-400 hover:text-slate-600">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-
-            <div class="space-y-3">
-                <div class="bg-indigo-50 p-3 rounded-xl flex items-center justify-between">
-                    <div>
-                        <h4 class="font-bold text-xs text-indigo-950">Dozvola za Obaveštenja</h4>
-                        <p class="text-[11px] text-indigo-700" id="notif-status-text">Status: Nije omogućeno</p>
-                    </div>
-                    <button id="request-notif-btn" onclick="requestNotificationPermission()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Omogući</button>
-                </div>
-
-                <div class="space-y-2 pt-1">
-                    <label class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
-                        <span class="text-xs font-semibold text-slate-700">🎒 Podsetnik za pakovanje torbe (Uveče u 20:00h)</span>
-                        <input type="checkbox" id="check-bag-notif" checked class="w-4 h-4 text-indigo-600 rounded">
-                    </label>
-
-                    <label class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
-                        <span class="text-xs font-semibold text-slate-700">⌚ Podsetnik 5 min pre časa (Za pametni sat)</span>
-                        <input type="checkbox" id="check-class-notif" checked class="w-4 h-4 text-indigo-600 rounded">
-                    </label>
-                </div>
-
-                <div class="border-t pt-3 text-[11px] text-slate-500 space-y-1">
-                    <p>💡 <strong>Pametni Satovi:</strong> Sve notifikacije koje pošalje ovaj pretraživač automatski će se preslikati na Apple Watch ili Android sat ukoliko je uključeno obaveštenje na telefonu.</p>
-                </div>
-            </div>
-
-            <button onclick="saveNotificationSettings()" class="w-full py-2 bg-indigo-600 text-white font-semibold rounded-xl text-xs">Sačuj Podešavanja</button>
-        </div>
-    </div>
-
-    <script>
-        // Osnovni početni podaci ako je localStorage prazan
+        // Početni podaci: tačno 5 časova za svaki dan u Smeni A i Smeni B
         const initialSchedule = {
             'A': {
                 1: [ // Ponedeljak
-                    { id: '1', title: 'Matematika', start: '08:00', end: '08:45', room: '12', teacher: 'Prof. Petrović', notes: 'Ponesi zbirku zadataka', color: 'bg-blue-500' },
-                    { id: '2', title: 'Srpski Jezik', start: '08:50', end: '09:35', room: '04', teacher: 'Prof. Nikolić', notes: 'Lektira: Na Drini Ćuprija', color: 'bg-emerald-500' },
+                    { id: '1', title: 'Matematika', start: '08:00', end: '08:45', room: '12', teacher: 'Prof. Petrović', notes: 'Ponesi zbirku', color: 'bg-blue-500' },
+                    { id: '2', title: 'Srpski Jezik', start: '08:50', end: '09:35', room: '04', teacher: 'Prof. Nikolić', notes: 'Lektira', color: 'bg-emerald-500' },
                     { id: '3', title: 'Engleski Jezik', start: '09:50', end: '10:35', room: '18', teacher: 'Prof. Smith', notes: '', color: 'bg-purple-500' },
-                    { id: '4', title: 'Fizičko Vaspitanje', start: '10:40', end: '11:25', room: 'Sala 1', teacher: 'Prof. Marković', notes: 'Obavezna oprema i patike!', color: 'bg-rose-500' },
+                    { id: '4', title: 'Fizičko Vaspitanje', start: '10:40', end: '11:25', room: 'Sala 1', teacher: 'Prof. Marković', notes: 'Patike', color: 'bg-rose-500' },
                     { id: '5', title: 'Istorija', start: '11:30', end: '12:15', room: '09', teacher: 'Prof. Stanković', notes: '', color: 'bg-amber-500' }
                 ],
                 2: [ // Utorak
-                    { id: '6', title: 'Fizika', start: '08:00', end: '08:45', room: '15', teacher: 'Prof. Ilić', notes: 'Kviz iz formula', color: 'bg-blue-500' },
-                    { id: '7', title: 'Hemija', start: '08:50', end: '09:35', room: '16', teacher: 'Prof. Popović', notes: 'Mantil za laboratoriju', color: 'bg-emerald-500' },
-                    { id: '8', title: 'Geografija', start: '09:50', end: '10:35', room: '07', teacher: 'Prof. Jović', notes: 'Nemačka i Azija', color: 'bg-amber-500' }
+                    { id: '6', title: 'Fizika', start: '08:00', end: '08:45', room: '15', teacher: 'Prof. Ilić', notes: 'Formule', color: 'bg-blue-500' },
+                    { id: '7', title: 'Hemija', start: '08:50', end: '09:35', room: '16', teacher: 'Prof. Popović', notes: 'Mantil', color: 'bg-emerald-500' },
+                    { id: '8', title: 'Geografija', start: '09:50', end: '10:35', room: '07', teacher: 'Prof. Jović', notes: '', color: 'bg-amber-500' },
+                    { id: '9', title: 'Biologija', start: '10:40', end: '11:25', room: '03', teacher: 'Prof. Cvetković', notes: '', color: 'bg-purple-500' },
+                    { id: '10', title: 'Informatika', start: '11:30', end: '12:15', room: 'Kabinet', teacher: 'Prof. Tasić', notes: '', color: 'bg-blue-500' }
                 ],
                 3: [ // Sreda
-                    { id: '9', title: 'Informatika', start: '08:00', end: '08:45', room: 'Kab 2', teacher: 'Prof. Tasić', notes: 'Projekat u Pythonu', color: 'bg-purple-500' },
-                    { id: '10', title: 'Matematika', start: '08:50', end: '09:35', room: '12', teacher: 'Prof. Petrović', notes: '', color: 'bg-blue-500' },
-                    { id: '11', title: 'Biologija', start: '09:50', end: '10:35', room: '03', teacher: 'Prof. Cvetković', notes: 'Crtanje ćelije', color: 'bg-emerald-500' }
+                    { id: '11', title: 'Informatika', start: '08:00', end: '08:45', room: 'Kab 2', teacher: 'Prof. Tasić', notes: 'Python', color: 'bg-purple-500' },
+                    { id: '12', title: 'Matematika', start: '08:50', end: '09:35', room: '12', teacher: 'Prof. Petrović', notes: '', color: 'bg-blue-500' },
+                    { id: '13', title: 'Biologija', start: '09:50', end: '10:35', room: '03', teacher: 'Prof. Cvetković', notes: '', color: 'bg-emerald-500' },
+                    { id: '14', title: 'Srpski Jezik', start: '10:40', end: '11:25', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-rose-500' },
+                    { id: '15', title: 'Muzička Kultura', start: '11:30', end: '12:15', room: 'Muzeutika', teacher: 'Prof. Kostić', notes: '', color: 'bg-amber-500' }
                 ],
                 4: [ // Četvrtak
-                    { id: '12', title: 'Srpski Jezik', start: '08:00', end: '08:45', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-emerald-500' },
-                    { id: '13', title: 'Likovna Kultura', start: '08:50', end: '09:35', room: 'Atelje', teacher: 'Prof. Lukić', notes: 'Ponesi blok 5 i vodene boje!', color: 'bg-rose-500' },
-                    { id: '14', title: 'Muzička Kultura', start: '09:50', end: '10:35', room: 'Muzeutika', teacher: 'Prof. Kostić', notes: '', color: 'bg-amber-500' }
+                    { id: '16', title: 'Srpski Jezik', start: '08:00', end: '08:45', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-emerald-500' },
+                    { id: '17', title: 'Likovna Kultura', start: '08:50', end: '09:35', room: 'Atelje', teacher: 'Prof. Lukić', notes: 'Blok 5', color: 'bg-rose-500' },
+                    { id: '18', title: 'Muzička Kultura', start: '09:50', end: '10:35', room: 'Muzeutika', teacher: 'Prof. Kostić', notes: '', color: 'bg-amber-500' },
+                    { id: '19', title: 'Engleski Jezik', start: '10:40', end: '11:25', room: '18', teacher: 'Prof. Smith', notes: '', color: 'bg-purple-500' },
+                    { id: '20', title: 'Fizika', start: '11:30', end: '12:15', room: '15', teacher: 'Prof. Ilić', notes: '', color: 'bg-blue-500' }
                 ],
                 5: [ // Petak
-                    { id: '15', title: 'Strani Jezik 2', start: '08:00', end: '08:45', room: '11', teacher: 'Prof. Müller', notes: '', color: 'bg-purple-500' },
-                    { id: '16', title: 'Matematika', start: '08:50', end: '09:35', room: '12', teacher: 'Prof. Petrović', notes: 'Kontrolni zadatak!', color: 'bg-blue-500' }
+                    { id: '21', title: 'Strani Jezik 2', start: '08:00', end: '08:45', room: '11', teacher: 'Prof. Müller', notes: '', color: 'bg-purple-500' },
+                    { id: '22', title: 'Matematika', start: '08:50', end: '09:35', room: '12', teacher: 'Prof. Petrović', notes: 'Kontrolni', color: 'bg-blue-500' },
+                    { id: '23', title: 'Geografija', start: '09:50', end: '10:35', room: '07', teacher: 'Prof. Jović', notes: '', color: 'bg-amber-500' },
+                    { id: '24', title: 'Istorija', start: '10:40', end: '11:25', room: '09', teacher: 'Prof. Stanković', notes: '', color: 'bg-emerald-500' },
+                    { id: '25', title: 'Čas Odelj. Starešine', start: '11:30', end: '12:15', room: '12', teacher: 'Razredni', notes: '', color: 'bg-rose-500' }
                 ]
             },
             'B': {
-                1: [
+                1: [ // Ponedeljak (Popodne)
                     { id: '101', title: 'Matematika', start: '13:00', end: '13:45', room: '12', teacher: 'Prof. Petrović', notes: '', color: 'bg-blue-500' },
-                    { id: '102', title: 'Srpski Jezik', start: '13:50', end: '14:35', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-emerald-500' }
+                    { id: '102', title: 'Srpski Jezik', start: '13:50', end: '14:35', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-emerald-500' },
+                    { id: '103', title: 'Engleski Jezik', start: '14:50', end: '15:35', room: '18', teacher: 'Prof. Smith', notes: '', color: 'bg-purple-500' },
+                    { id: '104', title: 'Fizičko Vaspitanje', start: '15:40', end: '16:25', room: 'Sala 1', teacher: 'Prof. Marković', notes: '', color: 'bg-rose-500' },
+                    { id: '105', title: 'Istorija', start: '16:30', end: '17:15', room: '09', teacher: 'Prof. Stanković', notes: '', color: 'bg-amber-500' }
+                ],
+                2: [ // Utorak
+                    { id: '106', title: 'Fizika', start: '13:00', end: '13:45', room: '15', teacher: 'Prof. Ilić', notes: '', color: 'bg-blue-500' },
+                    { id: '107', title: 'Hemija', start: '13:50', end: '14:35', room: '16', teacher: 'Prof. Popović', notes: '', color: 'bg-emerald-500' },
+                    { id: '108', title: 'Geografija', start: '14:50', end: '15:35', room: '07', teacher: 'Prof. Jović', notes: '', color: 'bg-amber-500' },
+                    { id: '109', title: 'Biologija', start: '15:40', end: '16:25', room: '03', teacher: 'Prof. Cvetković', notes: '', color: 'bg-purple-500' },
+                    { id: '110', title: 'Informatika', start: '16:30', end: '17:15', room: 'Kabinet', teacher: 'Prof. Tasić', notes: '', color: 'bg-blue-500' }
+                ],
+                3: [ // Sreda
+                    { id: '111', title: 'Informatika', start: '13:00', end: '13:45', room: 'Kab 2', teacher: 'Prof. Tasić', notes: '', color: 'bg-purple-500' },
+                    { id: '112', title: 'Matematika', start: '13:50', end: '14:35', room: '12', teacher: 'Prof. Petrović', notes: '', color: 'bg-blue-500' },
+                    { id: '113', title: 'Biologija', start: '14:50', end: '15:35', room: '03', teacher: 'Prof. Cvetković', notes: '', color: 'bg-emerald-500' },
+                    { id: '114', title: 'Srpski Jezik', start: '15:40', end: '16:25', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-rose-500' },
+                    { id: '115', title: 'Muzička Kultura', start: '16:30', end: '17:15', room: 'Muzeutika', teacher: 'Prof. Kostić', notes: '', color: 'bg-amber-500' }
+                ],
+                4: [ // Četvrtak
+                    { id: '116', title: 'Srpski Jezik', start: '13:00', end: '13:45', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-emerald-500' },
+                    { id: '117', title: 'Likovna Kultura', start: '13:50', end: '14:35', room: 'Atelje', teacher: 'Prof. Lukić', notes: '', color: 'bg-rose-500' },
+                    { id: '118', title: 'Muzička Kultura', start: '14:50', end: '15:35', room: 'Muzeutika', teacher: 'Prof. Kostić', notes: '', color: 'bg-amber-500' },
+                    { id: '119', title: 'Engleski Jezik', start: '15:40', end: '16:25', room: '18', teacher: 'Prof. Smith', notes: '', color: 'bg-purple-500' },
+                    { id: '120', title: 'Fizika', start: '16:30', end: '17:15', room: '15', teacher: 'Prof. Ilić', notes: '', color: 'bg-blue-500' }
+                ],
+                5: [ // Petak
+                    { id: '121', title: 'Strani Jezik 2', start: '13:00', end: '13:45', room: '11', teacher: 'Prof. Müller', notes: '', color: 'bg-purple-500' },
+                    { id: '122', title: 'Matematika', start: '13:50', end: '14:35', room: '12', teacher: 'Prof. Petrović', notes: '', color: 'bg-blue-500' },
+                    { id: '123', title: 'Geografija', start: '14:50', end: '15:35', room: '07', teacher: 'Prof. Jović', notes: '', color: 'bg-amber-500' },
+                    { id: '124', title: 'Istorija', start: '15:40', end: '16:25', room: '09', teacher: 'Prof. Stanković', notes: '', color: 'bg-emerald-500' },
+                    { id: '125', title: 'Čas Odelj. Starešine', start: '16:30', end: '17:15', room: '12', teacher: 'Razredni', notes: '', color: 'bg-rose-500' }
                 ]
             }
         };
 
-        // Stanje aplikacije
         let currentShift = localStorage.getItem('skolski_shift') || 'A';
         let currentDay = new Date().getDay(); 
-        if (currentDay === 0 || currentDay === 6) currentDay = 1; // Ako je vikend, prikaži Ponedeljak
-        let scheduleData = JSON.parse(localStorage.getItem('skolski_schedule')) || initialSchedule;
+        if (currentDay === 0 || currentDay === 6) currentDay = 1;
+        let scheduleData = initialSchedule;
 
-        const dayNames = {
-            1: 'Ponedeljak',
-            2: 'Utorak',
-            3: 'Sreda',
-            4: 'Četvrtak',
-            5: 'Petak'
-        };
+        const scheduleRef = ref(db, 'skolski_asistent/raspored_v2');
 
-        // Inicijalizacija aplikacije
-        window.onload = function() {
-            updateShiftUI();
-            switchDay(currentDay);
-            startLiveTimer();
-            checkNotificationsPermissionStatus();
-            setupPWA();
-        };
+        // Slušaj promene sa Firebase-a u realnom vremenu
+        onValue(scheduleRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                scheduleData = data;
+                renderSchedule();
+            } else {
+                // Ako je baza prazna, upisi inicijalne podatke sa 5 časova
+                set(scheduleRef, initialSchedule);
+            }
+        });
 
-        // Promena smene A / B
-        function toggleShift() {
+        window.saveToFirebase = function() {
+            set(scheduleRef, scheduleData);
+        }
+
+        window.toggleShift = function() {
             currentShift = currentShift === 'A' ? 'B' : 'A';
             localStorage.setItem('skolski_shift', currentShift);
             updateShiftUI();
             renderSchedule();
         }
 
-        function updateShiftUI() {
-            document.getElementById('shift-label').innerText = currentShift;
-            document.getElementById('current-shift-badge').innerText = `Smena ${currentShift} (${currentShift === 'A' ? 'Pre podne' : 'Posle podne'})`;
-        }
-
-        // Prebacivanje kartica po danima
-        function switchDay(dayNum) {
+        window.switchDay = function(dayNum) {
             currentDay = dayNum;
-            
-            // Ažuriraj tastere
             document.querySelectorAll('.day-tab').forEach(btn => {
                 const btnDay = parseInt(btn.getAttribute('data-day'));
                 if (btnDay === dayNum) {
@@ -462,22 +150,26 @@
                     btn.className = 'day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
                 }
             });
-
             document.getElementById('selected-day-title').innerText = dayNames[dayNum];
             renderSchedule();
         }
 
-        // Prikaz časova u listi
+        const dayNames = { 1: 'Ponedeljak', 2: 'Utorak', 3: 'Sreda', 4: 'Četvrtak', 5: 'Petak' };
+
+        function updateShiftUI() {
+            document.getElementById('shift-label').innerText = currentShift;
+            document.getElementById('current-shift-badge').innerText = `Smena ${currentShift} (${currentShift === 'A' ? 'Pre podne' : 'Posle podne'})`;
+        }
+
         function renderSchedule() {
+            updateShiftUI();
             const listContainer = document.getElementById('schedule-list');
             const emptyState = document.getElementById('empty-state');
             const countBadge = document.getElementById('subject-count-badge');
             
-            const dayItems = (scheduleData[currentShift] && scheduleData[currentShift][currentDay]) 
-                ? scheduleData[currentShift][currentDay] 
-                : [];
+            const dayItems = (scheduleData[currentShift] && scheduleData[currentShift][currentDay]) ? scheduleData[currentShift][currentDay] : [];
 
-            countBadge.innerText = `${dayItems.length} ${dayItems.length === 1 ? 'čas' : 'časa/casova'}`;
+            countBadge.innerText = `${dayItems.length} časova`;
 
             if (dayItems.length === 0) {
                 listContainer.innerHTML = '';
@@ -486,167 +178,81 @@
             }
 
             emptyState.classList.add('hidden');
-            
-            // Sortiraj časove po vremenu početka
             dayItems.sort((a, b) => a.start.localeCompare(b.start));
 
             listContainer.innerHTML = dayItems.map((item, index) => {
                 return `
                     <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative overflow-hidden group">
-                        <!-- Kolorna linija sa strane -->
                         <div class="absolute left-0 top-0 bottom-0 w-2 ${item.color || 'bg-indigo-500'}"></div>
-                        
                         <div class="pl-2 flex items-start gap-3">
                             <div class="bg-slate-100 px-2.5 py-1.5 rounded-xl text-center min-w-[60px]">
                                 <span class="block text-xs font-bold text-slate-700">#${index + 1}</span>
                                 <span class="block text-[10px] text-slate-500 font-mono">${item.start}</span>
                             </div>
                             <div>
-                                <h4 class="font-bold text-slate-800 text-base flex items-center gap-2">
-                                    ${item.title}
-                                </h4>
+                                <h4 class="font-bold text-slate-800 text-base">${item.title}</h4>
                                 <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-0.5">
                                     ${item.room ? `<span><i class="fa-solid fa-door-open text-slate-400 mr-1"></i>${item.room}</span>` : ''}
                                     ${item.teacher ? `<span><i class="fa-solid fa-user-tie text-slate-400 mr-1"></i>${item.teacher}</span>` : ''}
                                     <span><i class="fa-regular fa-clock text-slate-400 mr-1"></i>${item.start} - ${item.end}</span>
                                 </div>
-                                ${item.notes ? `
-                                    <div class="mt-2 text-xs bg-amber-50 text-amber-800 px-2.5 py-1 rounded-lg border border-amber-200/60 inline-block font-medium">
-                                        📌 ${item.notes}
-                                    </div>
-                                ` : ''}
+                                ${item.notes ? `<p class="text-xs bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md mt-1.5 inline-block border border-amber-200/60"><i class="fa-solid fa-triangle-exclamation mr-1"></i>${item.notes}</p>` : ''}
                             </div>
                         </div>
-
-                        <!-- Tasteri za izmenu/brisanje -->
-                        <div class="flex items-center gap-1 justify-end pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
-                            <button onclick="openEditModal('${item.id}')" class="p-2 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition text-xs">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button onclick="deleteSubject('${item.id}')" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition text-xs">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
+                        <div class="flex items-center gap-1 self-end sm:self-center">
+                            <button onclick="editSubject('${item.id}')" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Izmeni"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteSubject('${item.id}')" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Obriši"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }).join('');
         }
 
-        // Tajmer uživo i detekcija trenutnog časa
-        function startLiveTimer() {
-            updateLiveStatus();
-            setInterval(updateLiveStatus, 1000); // osvežavaj svake sekunde
-        }
-
-        function updateLiveStatus() {
-            const now = new Date();
-            const dayOfWeek = now.getDay(); // 0-6 (0 je Nedelja)
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const currentTimeStr = `${hours}:${minutes}`;
-
-            const widgetDayName = document.getElementById('widget-day-name');
-            const widgetDayNum = document.getElementById('widget-day-num');
-            const widgetStatus = document.getElementById('widget-status-text');
-            const widgetTitle = document.getElementById('widget-subject-title');
-            const widgetRoom = document.getElementById('widget-room');
-            const widgetTeacher = document.getElementById('widget-teacher');
-            const widgetTimer = document.getElementById('widget-timer');
-
-            // Postavi datum u widgetu
-            const daysShort = ['NED', 'PON', 'UTO', 'SRE', 'ČET', 'PET', 'SUB'];
-            widgetDayName.innerText = daysShort[dayOfWeek];
-            widgetDayNum.innerText = now.getDate();
-
-            // Ako je vikend
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-                widgetStatus.innerText = 'Vikend';
-                widgetTitle.innerText = 'Nema nastave danas';
-                widgetRoom.innerText = '-';
-                widgetTeacher.innerText = 'Slobodno vreme';
-                widgetTimer.innerText = '00:00';
-                return;
-            }
-
-            const todayClasses = (scheduleData[currentShift] && scheduleData[currentShift][dayOfWeek]) 
-                ? scheduleData[currentShift][dayOfWeek] 
-                : [];
-
-            if (todayClasses.length === 0) {
-                widgetStatus.innerText = 'Slobodan dan';
-                widgetTitle.innerText = 'Nema predmeta';
-                widgetRoom.innerText = '-';
-                widgetTeacher.innerText = '-';
-                widgetTimer.innerText = '00:00';
-                return;
-            }
-
-            // Proveri da li je neki čas u toku
-            let activeClass = null;
-            let nextClass = null;
-
-            for (let i = 0; i < todayClasses.length; i++) {
-                const c = todayClasses[i];
-                if (currentTimeStr >= c.start && currentTimeStr < c.end) {
-                    activeClass = c;
-                    break;
-                } else if (currentTimeStr < c.start) {
-                    if (!nextClass) nextClass = c;
-                }
-            }
-
-            if (activeClass) {
-                widgetStatus.innerText = 'Čas u toku';
-                widgetTitle.innerText = activeClass.title;
-                widgetRoom.innerText = activeClass.room || 'Kabinet';
-                widgetTeacher.innerText = activeClass.teacher || 'Nastavnik';
-                
-                // Izračunaj preostale minute
-                const endSecs = timeStringToSeconds(activeClass.end);
-                const nowSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-                const diffSecs = Math.max(0, endSecs - nowSecs);
-                widgetTimer.innerText = secondsToMMSS(diffSecs);
-            } else if (nextClass) {
-                widgetStatus.innerText = 'Sledeći čas uvek usled';
-                widgetTitle.innerText = nextClass.title;
-                widgetRoom.innerText = nextClass.room || 'Kabinet';
-                widgetTeacher.innerText = nextClass.teacher || 'Nastavnik';
-
-                const startSecs = timeStringToSeconds(nextClass.start);
-                const nowSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-                const diffSecs = Math.max(0, startSecs - nowSecs);
-                widgetTimer.innerText = secondsToMMSS(diffSecs);
-            } else {
-                widgetStatus.innerText = 'Završena nastava';
-                widgetTitle.innerText = 'Kraj časova za danas';
-                widgetRoom.innerText = '-';
-                widgetTeacher.innerText = 'Slobodno popodne';
-                widgetTimer.innerText = '00:00';
-            }
-        }
-
-        function timeStringToSeconds(timeStr) {
-            const [h, m] = timeStr.split(':').map(Number);
-            return h * 3600 + m * 60;
-        }
-
-        function secondsToMMSS(secs) {
-            const m = Math.floor(secs / 60);
-            const s = secs % 60;
-            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-        }
-
-        // Upravljanje Modalima (Dodavanje/Izmena)
-        function openAddModal() {
+        window.openAddModal = function() {
             document.getElementById('modal-title').innerText = 'Dodaj Novi Čas';
-            document.getElementById('subject-form').reset();
             document.getElementById('form-id').value = '';
+            document.getElementById('form-title').value = '';
+            document.getElementById('form-start').value = '08:00';
+            document.getElementById('form-end').value = '08:45';
+            document.getElementById('form-room').value = '';
+            document.getElementById('form-teacher').value = '';
+            document.getElementById('form-notes').value = '';
             document.getElementById('subject-modal').classList.remove('hidden');
         }
 
-        function openEditModal(id) {
+        window.closeAddModal = function() {
+            document.getElementById('subject-modal').classList.add('hidden');
+        }
+
+        window.saveSubject = function(e) {
+            e.preventDefault();
+            const id = document.getElementById('form-id').value || 'sub_' + Date.now();
+            const title = document.getElementById('form-title').value;
+            const start = document.getElementById('form-start').value;
+            const end = document.getElementById('form-end').value;
+            const room = document.getElementById('form-room').value;
+            const teacher = document.getElementById('form-teacher').value;
+            const notes = document.getElementById('form-notes').value;
+            const color = document.querySelector('input[name="color"]:checked').value;
+
+            if (!scheduleData[currentShift]) scheduleData[currentShift] = {};
+            if (!scheduleData[currentShift][currentDay]) scheduleData[currentShift][currentDay] = [];
+
+            const existingIndex = scheduleData[currentShift][currentDay].findIndex(s => s.id === id);
+            const subjectObj = { id, title, start, end, room, teacher, notes, color };
+
+            if (existingIndex > -1) {
+                scheduleData[currentShift][currentDay][existingIndex] = subjectObj;
+            } else {
+                scheduleData[currentShift][currentDay].push(subjectObj);
+            }
+
+            saveToFirebase();
+            closeAddModal();
+        }
+
+        window.editSubject = function(id) {
             const dayItems = scheduleData[currentShift][currentDay] || [];
-            const item = dayItems.find(x => x.id === id);
+            const item = dayItems.find(s => s.id === id);
             if (!item) return;
 
             document.getElementById('modal-title').innerText = 'Izmeni Čas';
@@ -657,252 +263,302 @@
             document.getElementById('form-room').value = item.room || '';
             document.getElementById('form-teacher').value = item.teacher || '';
             document.getElementById('form-notes').value = item.notes || '';
+            
+            document.querySelectorAll('input[name="color"]').forEach(radio => {
+                radio.checked = (radio.value === item.color);
+            });
 
             document.getElementById('subject-modal').classList.remove('hidden');
         }
 
-        function closeAddModal() {
-            document.getElementById('subject-modal').classList.add('hidden');
-        }
-
-        function saveSubject(e) {
-            e.preventDefault();
-            const id = document.getElementById('form-id').value;
-            const title = document.getElementById('form-title').value;
-            const start = document.getElementById('form-start').value;
-            const end = document.getElementById('form-end').value;
-            const room = document.getElementById('form-room').value;
-            const teacher = document.getElementById('form-teacher').value;
-            const notes = document.getElementById('form-notes').value;
-            
-            // Pročitaj odabranu boju
-            const colorRadios = document.getElementsByName('color');
-            let color = 'bg-blue-500';
-            for (const radio of colorRadios) {
-                if (radio.checked) {
-                    color = radio.value;
-                    break;
-                }
+        window.deleteSubject = function(id) {
+            if (confirm('Da li ste sigurni da želite da obrišete ovaj čas?')) {
+                scheduleData[currentShift][currentDay] = scheduleData[currentShift][currentDay].filter(s => s.id !== id);
+                saveToFirebase();
             }
-
-            if (!scheduleData[currentShift]) scheduleData[currentShift] = {};
-            if (!scheduleData[currentShift][currentDay]) scheduleData[currentShift][currentDay] = [];
-
-            if (id) {
-                // Ažuriranje postojećeg
-                const index = scheduleData[currentShift][currentDay].findIndex(x => x.id === id);
-                if (index !== -1) {
-                    scheduleData[currentShift][currentDay][index] = { id, title, start, end, room, teacher, notes, color };
-                }
-            } else {
-                // Novi unos
-                const newItem = {
-                    id: Date.now().toString(),
-                    title, start, end, room, teacher, notes, color
-                };
-                scheduleData[currentShift][currentDay].push(newItem);
-            }
-
-            localStorage.setItem('skolski_schedule', JSON.stringify(scheduleData));
-            closeAddModal();
-            renderSchedule();
         }
 
-        function deleteSubject(id) {
-            if (!confirm('Da li ste sigurni da želite da obrišete ovaj čas?')) return;
-            
-            scheduleData[currentShift][currentDay] = scheduleData[currentShift][currentDay].filter(x => x.id !== id);
-            localStorage.setItem('skolski_schedule', JSON.stringify(scheduleData));
-            renderSchedule();
-        }
-
-        // GENERATOR POZADINE ZA ZAKLJUČANI EKRAN (LOCKSCREEN)
-        function openLockscreenModal() {
-            generateLockscreenCard('tomorrow'); // Podrazumevano generiši za sutra
+        window.openLockscreenModal = function() {
+            generateLockscreenCard('today');
             document.getElementById('lockscreen-modal').classList.remove('hidden');
         }
 
-        function closeLockscreenModal() {
+        window.closeLockscreenModal = function() {
             document.getElementById('lockscreen-modal').classList.add('hidden');
         }
 
-        function generateLockscreenCard(target) {
-            const btnToday = document.getElementById('ls-btn-today');
-            const btnTomorrow = document.getElementById('ls-btn-tomorrow');
+        window.generateLockscreenCard = function(target) {
+            const targetDay = target === 'today' ? currentDay : (currentDay === 5 ? 1 : currentDay + 1);
+            document.getElementById('ls-btn-today').className = target === 'today' ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white' : 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200';
+            document.getElementById('ls-btn-tomorrow').className = target === 'tomorrow' ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white' : 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200';
             
-            let targetDayNum = currentDay;
-            if (target === 'tomorrow') {
-                targetDayNum = currentDay + 1;
-                if (targetDayNum > 5) targetDayNum = 1; // Vikend rotacija na Ponedeljak
-                btnTomorrow.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white";
-                btnToday.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200";
-            } else {
-                btnToday.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white";
-                btnTomorrow.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200";
-            }
-
-            document.getElementById('ls-day-badge').innerText = `${target === 'tomorrow' ? 'SUTRA • ' : 'DANAS • '}${dayNames[targetDayNum].toUpperCase()}`;
+            document.getElementById('ls-day-badge').innerText = `${target === 'today' ? 'DANAS' : 'SUTRA'} • ${dayNames[targetDay].toUpperCase()}`;
             document.getElementById('ls-shift').innerText = currentShift;
 
-            const list = document.getElementById('ls-list');
-            const items = (scheduleData[currentShift] && scheduleData[currentShift][targetDayNum]) 
-                ? [...scheduleData[currentShift][targetDayNum]] 
-                : [];
+            const dayItems = (scheduleData[currentShift] && scheduleData[currentShift][targetDay]) ? scheduleData[currentShift][targetDay] : [];
+            const listEl = document.getElementById('ls-list');
 
-            items.sort((a, b) => a.start.localeCompare(b.start));
-
-            if (items.length === 0) {
-                list.innerHTML = `<p class="text-slate-400 italic text-center py-4">Nema predmeta za ovaj dan.</p>`;
+            if (dayItems.length === 0) {
+                listEl.innerHTML = '<p class="text-center text-slate-400 py-4">Nema unetih časova</p>';
                 return;
             }
 
-            list.innerHTML = items.map((item, idx) => `
-                <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/50 flex items-center justify-between">
+            listEl.innerHTML = dayItems.map((item, idx) => `
+                <div class="flex items-center justify-between bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-700">
                     <div>
-                        <div class="font-bold text-white text-xs">${idx + 1}. ${item.title}</div>
-                        <div class="text-[10px] text-slate-400">${item.room ? 'Kabinet: ' + item.room : ''} ${item.notes ? '• ' + item.notes : ''}</div>
+                        <span class="text-indigo-400 font-mono font-bold mr-2">#${idx+1}</span>
+                        <span class="font-bold text-white">${item.title}</span>
                     </div>
-                    <div class="text-[10px] font-mono text-indigo-300 font-bold bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/40">
-                        ${item.start}
-                    </div>
+                    <span class="text-[10px] text-slate-400 font-mono">${item.start}</span>
                 </div>
             `).join('');
         }
 
-        function downloadLockscreenImage() {
-            const cardNode = document.getElementById('lockscreen-card-export');
-            html2canvas(cardNode, {
-                scale: 3, // visoka rezolucija za mobilni ekran
-                backgroundColor: '#0f172a'
-            }).then(canvas => {
+        window.downloadLockscreenImage = function() {
+            const card = document.getElementById('lockscreen-card-export');
+            html2canvas(card, { scale: 3 }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = `raspored-zakljucani-ekran.png`;
+                link.download = 'skolski-raspored-lockscreen.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             });
         }
 
-        // ŠTAMPANJE / PRINT PREGLED
-        function openPrintView() {
-            document.getElementById('print-shift-name').innerText = currentShift;
-            const tbody = document.getElementById('print-table-body');
-            tbody.innerHTML = '';
+        window.openNotificationsModal = function() { document.getElementById('notif-modal').classList.remove('hidden'); }
+        window.closeNotificationsModal = function() { document.getElementById('notif-modal').classList.add('hidden'); }
+        window.openPrintView = function() { window.print(); }
 
-            // Generiši redove za časove 1 do 6
-            for (let slot = 1; slot <= 6; slot++) {
-                let tr = document.createElement('tr');
-                let timeText = slot === 1 ? '08:00-08:45' : slot === 2 ? '08:50-09:35' : slot === 3 ? '09:50-10:35' : '...';
-                
-                tr.innerHTML = `
-                    <td class="border border-gray-400 p-2 text-center font-bold">${slot}</td>
-                    <td class="border border-gray-400 p-2 text-center text-[10px] text-gray-500">${timeText}</td>
-                `;
-
-                for (let day = 1; day <= 5; day++) {
-                    const dayItems = (scheduleData[currentShift] && scheduleData[currentShift][day]) ? scheduleData[currentShift][day] : [];
-                    const classItem = dayItems[slot - 1]; // Umeće čas po redosledu
-
-                    if (classItem) {
-                        tr.innerHTML += `
-                            <td class="border border-gray-400 p-2">
-                                <div class="font-bold">${classItem.title}</div>
-                                <div class="text-[10px] text-gray-600">${classItem.room ? 'Kab: ' + classItem.room : ''}</div>
-                                ${classItem.notes ? `<div class="text-[9px] text-amber-700 italic">${classItem.notes}</div>` : ''}
-                            </td>
-                        `;
-                    } else {
-                        tr.innerHTML += `<td class="border border-gray-400 p-2 text-center text-gray-300">-</td>`;
-                    }
-                }
-                tbody.appendChild(tr);
-            }
-
-            window.print();
-        }
-
-        // OBVEŠTENJA I INTEGRACIJA ZA PAMETNI SAT
-        function openNotificationsModal() {
-            document.getElementById('notif-modal').classList.remove('hidden');
-        }
-
-        function closeNotificationsModal() {
-            document.getElementById('notif-modal').classList.add('hidden');
-        }
-
-        function checkNotificationsPermissionStatus() {
-            const badge = document.getElementById('notif-badge');
-            const statusText = document.getElementById('notif-status-text');
-            const reqBtn = document.getElementById('request-notif-btn');
-
-            if (!("Notification" in window)) {
-                statusText.innerText = "Pretraživač ne podržava notifikacije";
-                reqBtn.style.display = "none";
-                return;
-            }
-
-            if (Notification.permission === "granted") {
-                badge.classList.remove('hidden');
-                statusText.innerText = "Status: Omogućeno ✓";
-                reqBtn.innerText = "Omogućeno";
-                reqBtn.classList.replace("bg-indigo-600", "bg-emerald-600");
-                reqBtn.disabled = true;
-            } else {
-                badge.classList.add('hidden');
-                statusText.innerText = "Status: Nije omogućeno";
-            }
-        }
-
-        function requestNotificationPermission() {
-            if (!("Notification" in window)) return;
-
+        window.requestNotificationPermission = function() {
             Notification.requestPermission().then(permission => {
-                checkNotificationsPermissionStatus();
-                if (permission === "granted") {
-                    sendSampleNotification("Notifikacije su aktivirane!", "Sada ćete dobijati podsetnike za pakovanje torbe i časove na vašem telefonu i pametnom satu.");
-                }
+                document.getElementById('notif-status-text').innerText = `Status: ${permission === 'granted' ? 'Omogućeno' : 'Odbijeno'}`;
             });
         }
 
-        function sendSampleNotification(title, body) {
-            if (Notification.permission === "granted") {
-                new Notification(title, {
-                    body: body,
-                    icon: 'https://cdn-icons-png.flaticon.com/512/2991/2991110.png',
-                    vibrate: [200, 100, 200]
-                });
+        function checkNotificationsPermissionStatus() {
+            if ("Notification" in window) {
+                document.getElementById('notif-status-text').innerText = `Status: ${Notification.permission === 'granted' ? 'Omogućeno' : 'Nije omogućeno'}`;
             }
         }
 
-        function saveNotificationSettings() {
-            closeNotificationsModal();
-            alert('Podešavanja notifikacija su sačuvana!');
-        }
-
-        // PWA SERVICE WORKER & MANIFEST
-        function setupPWA() {
-            // Dinamičko kreiranje web manifesta
-            const manifest = {
-                "name": "Školski Asistent Raspored",
-                "short_name": "Raspored",
-                "start_url": ".",
-                "display": "standalone",
-                "background_color": "#4f46e5",
-                "theme_color": "#4f46e5",
-                "icons": [{
-                    "src": "https://cdn-icons-png.flaticon.com/512/2991/2991110.png",
-                    "sizes": "512x512",
-                    "type": "image/png"
-                }]
-            };
-            const stringManifest = JSON.stringify(manifest);
-            const blob = new Blob([stringManifest], {type: 'application/json'});
-            const manifestURL = URL.createObjectURL(blob);
-            
-            const link = document.createElement('link');
-            link.rel = 'manifest';
-            link.href = manifestURL;
-            document.head.appendChild(link);
+        function startLiveTimer() {
+            setInterval(() => {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                document.getElementById('widget-timer').innerText = `${hours}:${minutes}:${seconds}`;
+            }, 1000);
         }
     </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; color: black; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col pb-20 md:pb-6">
+
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-30 no-print">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-white text-indigo-600 p-2 rounded-xl shadow-inner font-bold text-xl">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Školski Asistent</h1>
+                    <p class="text-xs text-indigo-200" id="current-shift-badge">Smena A (Pre podne)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleShift()" class="bg-indigo-700 hover:bg-indigo-800 text-xs text-indigo-100 px-3 py-1.5 rounded-lg transition border border-indigo-500/30 flex items-center gap-1.5">
+                    <i class="fa-solid fa-repeat"></i>
+                    <span class="hidden sm:inline">Promeni smenu:</span> <strong id="shift-label">A</strong>
+                </button>
+                <button onclick="openPrintView()" class="bg-indigo-500 hover:bg-indigo-400 p-2 rounded-lg text-white transition text-sm" title="Odštampaj">
+                    <i class="fa-solid fa-print"></i>
+                </button>
+                <button onclick="openNotificationsModal()" class="bg-indigo-500 hover:bg-indigo-400 p-2 rounded-lg text-white transition text-sm">
+                    <i class="fa-solid fa-bell"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto w-full px-4 py-4 flex-grow space-y-5">
+
+        <!-- Vremenski Widget -->
+        <section class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-4 shadow-lg no-print">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 backdrop-blur-md p-3 rounded-xl text-center min-w-[65px]">
+                        <span class="block text-xs uppercase tracking-wider font-semibold opacity-80">DAN</span>
+                        <span id="widget-day-num" class="block text-xl font-extrabold leading-none">12</span>
+                    </div>
+                    <div>
+                        <div class="inline-flex items-center gap-2 text-xs font-semibold bg-white/20 px-2.5 py-0.5 rounded-full mb-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>Firebase Sinhronizovano</span>
+                        </div>
+                        <h2 class="text-xl font-extrabold tracking-tight">Školski Raspored u Realnom Vremenu</h2>
+                    </div>
+                </div>
+                <div class="bg-black/20 backdrop-blur-sm rounded-xl px-4 py-2 flex items-center justify-between md:justify-end gap-4 border border-white/10">
+                    <div class="text-left md:text-right">
+                        <span class="block text-[10px] text-blue-200 uppercase tracking-wider">Trenutno Vreme</span>
+                        <span id="widget-timer" class="text-2xl font-mono font-bold tracking-wider">00:00:00</span>
+                    </div>
+                    <div class="text-2xl opacity-70">
+                        <i class="fa-solid fa-clock text-amber-300"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Navigacija po danima i akcije -->
+        <div class="flex flex-wrap items-center justify-between gap-3 no-print">
+            <div class="flex items-center gap-1 overflow-x-auto pb-1 w-full md:w-auto" id="day-tabs">
+                <button onclick="switchDay(1)" data-day="1" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-indigo-600 text-white border-indigo-600">Ponedeljak</button>
+                <button onclick="switchDay(2)" data-day="2" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Utorak</button>
+                <button onclick="switchDay(3)" data-day="3" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Sreda</button>
+                <button onclick="switchDay(4)" data-day="4" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Četvrtak</button>
+                <button onclick="switchDay(5)" data-day="5" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Petak</button>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Dodaj čas
+                </button>
+                <button onclick="openLockscreenModal()" class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-mobile-screen-button text-amber-400"></i> Pozadina
+                </button>
+            </div>
+        </div>
+
+        <!-- Lista časova -->
+        <section class="no-print">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h3 class="font-bold text-slate-700 text-base flex items-center gap-2">
+                    <i class="fa-regular fa-calendar-days text-indigo-600"></i>
+                    <span id="selected-day-title">Ponedeljak</span> - Raspored
+                </h3>
+                <span id="subject-count-badge" class="text-xs bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-full font-medium">5 časova</span>
+            </div>
+
+            <div id="schedule-list" class="space-y-3"></div>
+
+            <div id="empty-state" class="hidden bg-white border border-dashed border-slate-300 rounded-2xl p-8 text-center my-4">
+                <i class="fa-solid fa-mug-hot text-3xl text-slate-300 mb-2"></i>
+                <p class="text-slate-500 font-medium text-sm">Nema unetih časova za ovaj dan u ovoj smeni.</p>
+                <button onclick="openAddModal()" class="mt-3 text-indigo-600 font-semibold text-xs hover:underline">Dodaj prvi čas</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal za dodavanje/izmenu -->
+    <div id="subject-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 id="modal-title" class="font-bold text-slate-800 text-lg">Dodaj Čas</h3>
+                <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="saveSubject(event)" class="space-y-3">
+                <input type="hidden" id="form-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Naziv Predmeta *</label>
+                    <input type="text" id="form-title" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Početak *</label>
+                        <input type="time" id="form-start" required class="w-full px-3 py-2 border rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kraj *</label>
+                        <input type="time" id="form-end" required class="w-full px-3 py-2 border rounded-xl text-sm">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kabinet</label>
+                        <input type="text" id="form-room" class="w-full px-3 py-2 border rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Profesor</label>
+                        <input type="text" id="form-teacher" class="w-full px-3 py-2 border rounded-xl text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Beleške / Oprema</label>
+                    <input type="text" id="form-notes" class="w-full px-3 py-2 border rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Boja</label>
+                    <div class="flex gap-2 pt-1">
+                        <label class="cursor-pointer"><input type="radio" name="color" value="bg-blue-500" class="peer hidden" checked><span class="w-7 h-7 bg-blue-500 rounded-full block peer-checked:ring-2 peer-checked:ring-slate-800"></span></label>
+                        <label class="cursor-pointer"><input type="radio" name="color" value="bg-emerald-500" class="peer hidden"><span class="w-7 h-7 bg-emerald-500 rounded-full block peer-checked:ring-2 peer-checked:ring-slate-800"></span></label>
+                        <label class="cursor-pointer"><input type="radio" name="color" value="bg-purple-500" class="peer hidden"><span class="w-7 h-7 bg-purple-500 rounded-full block peer-checked:ring-2 peer-checked:ring-slate-800"></span></label>
+                        <label class="cursor-pointer"><input type="radio" name="color" value="bg-amber-500" class="peer hidden"><span class="w-7 h-7 bg-amber-500 rounded-full block peer-checked:ring-2 peer-checked:ring-slate-800"></span></label>
+                        <label class="cursor-pointer"><input type="radio" name="color" value="bg-rose-500" class="peer hidden"><span class="w-7 h-7 bg-rose-500 rounded-full block peer-checked:ring-2 peer-checked:ring-slate-800"></span></label>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-3 border-t">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600">Otkaži</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white shadow-sm">Sačuvaj</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal za Pozadinu -->
+    <div id="lockscreen-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl space-y-3">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-slate-800 text-base">Pozadina za Zaključani Ekran</h3>
+                <button onclick="closeLockscreenModal()"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="generateLockscreenCard('today')" id="ls-btn-today" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white">Danas</button>
+                <button onclick="generateLockscreenCard('tomorrow')" id="ls-btn-tomorrow" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600">Sutra</button>
+            </div>
+            <div class="flex justify-center my-2">
+                <div id="lockscreen-card-export" class="w-[260px] bg-slate-900 text-white rounded-3xl p-5 shadow-2xl border border-slate-700 relative overflow-hidden">
+                    <div class="text-center border-b border-slate-800 pb-3 mb-3">
+                        <span id="ls-day-badge" class="text-[10px] font-bold uppercase tracking-widest text-indigo-400">DANAS</span>
+                        <h4 class="text-lg font-extrabold text-white">Raspored Časova</h4>
+                        <p class="text-[10px] text-slate-400">Smena: <span id="ls-shift">A</span></p>
+                    </div>
+                    <div id="ls-list" class="space-y-2 text-xs"></div>
+                </div>
+            </div>
+            <button onclick="downloadLockscreenImage()" class="w-full py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-sm shadow">Preuzmi Sliku</button>
+        </div>
+    </div>
+
+    <!-- Modal za Notifikacije -->
+    <div id="notif-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-slate-800 text-base">Obaveštenja</h3>
+                <button onclick="closeNotificationsModal()"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div class="bg-indigo-50 p-3 rounded-xl flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-xs text-indigo-950">Dozvola</h4>
+                        <p class="text-[11px] text-indigo-700" id="notif-status-text">Status: Nije omogućeno</p>
+                    </div>
+                    <button onclick="requestNotificationPermission()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Omogući</button>
+                </div>
+            </div>
+            <button onclick="closeNotificationsModal()" class="w-full py-2 bg-indigo-600 text-white font-semibold rounded-xl text-xs">Zatvori</button>
+        </div>
+    </div>
+
 </body>
 </html>
