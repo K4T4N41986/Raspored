@@ -3,362 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Školski Asistent - Raspored Časova</title>
+    <title>Školski Asistent - Live Raspored Časova</title>
 
-    <link rel="manifest" href="manifest.json">
+            <link rel="manifest" href="manifest.json">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- html2canvas za generisanje pozadine zaključanog ekrana -->
+    <!-- html2canvas za generisanje Lockscreen pozadine -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
-    <!-- Firebase SDK (Modular v9) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
-
-        // Firebase konfiguracija iz Weekly Planner-a
-        const firebaseConfig = {
-            apiKey: "AIzaSyD-T_ExampleKeyPlaceholderForIvanApp986",
-            authDomain: "weekly-planner-app-default-rtdb.firebaseapp.com",
-            databaseURL: "https://weekly-planner-app-default-rtdb.firebaseio.com",
-            projectId: "weekly-planner-app",
-            storageBucket: "weekly-planner-app.appspot.com",
-            messagingSenderId: "1092837465",
-            appId: "1:1092837465:web:abcdef123456789"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        // Početni podaci: tačno 5 časova za svaki dan u Smeni A i Smeni B
-        const initialSchedule = {
-            'A': {
-                1: [ // Ponedeljak
-                    { id: '1', title: 'Matematika', start: '08:00', end: '08:45', room: '12', teacher: 'Prof. Petrović', notes: 'Ponesi zbirku', color: 'bg-blue-500' },
-                    { id: '2', title: 'Srpski Jezik', start: '08:50', end: '09:35', room: '04', teacher: 'Prof. Nikolić', notes: 'Lektira', color: 'bg-emerald-500' },
-                    { id: '3', title: 'Engleski Jezik', start: '09:50', end: '10:35', room: '18', teacher: 'Prof. Smith', notes: '', color: 'bg-purple-500' },
-                    { id: '4', title: 'Fizičko Vaspitanje', start: '10:40', end: '11:25', room: 'Sala 1', teacher: 'Prof. Marković', notes: 'Patike', color: 'bg-rose-500' },
-                    { id: '5', title: 'Istorija', start: '11:30', end: '12:15', room: '09', teacher: 'Prof. Stanković', notes: '', color: 'bg-amber-500' }
-                ],
-                2: [ // Utorak
-                    { id: '6', title: 'Fizika', start: '08:00', end: '08:45', room: '15', teacher: 'Prof. Ilić', notes: 'Formule', color: 'bg-blue-500' },
-                    { id: '7', title: 'Hemija', start: '08:50', end: '09:35', room: '16', teacher: 'Prof. Popović', notes: 'Mantil', color: 'bg-emerald-500' },
-                    { id: '8', title: 'Geografija', start: '09:50', end: '10:35', room: '07', teacher: 'Prof. Jović', notes: '', color: 'bg-amber-500' },
-                    { id: '9', title: 'Biologija', start: '10:40', end: '11:25', room: '03', teacher: 'Prof. Cvetković', notes: '', color: 'bg-purple-500' },
-                    { id: '10', title: 'Informatika', start: '11:30', end: '12:15', room: 'Kabinet', teacher: 'Prof. Tasić', notes: '', color: 'bg-blue-500' }
-                ],
-                3: [ // Sreda
-                    { id: '11', title: 'Informatika', start: '08:00', end: '08:45', room: 'Kab 2', teacher: 'Prof. Tasić', notes: 'Python', color: 'bg-purple-500' },
-                    { id: '12', title: 'Matematika', start: '08:50', end: '09:35', room: '12', teacher: 'Prof. Petrović', notes: '', color: 'bg-blue-500' },
-                    { id: '13', title: 'Biologija', start: '09:50', end: '10:35', room: '03', teacher: 'Prof. Cvetković', notes: '', color: 'bg-emerald-500' },
-                    { id: '14', title: 'Srpski Jezik', start: '10:40', end: '11:25', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-rose-500' },
-                    { id: '15', title: 'Muzička Kultura', start: '11:30', end: '12:15', room: 'Muzeutika', teacher: 'Prof. Kostić', notes: '', color: 'bg-amber-500' }
-                ],
-                4: [ // Četvrtak
-                    { id: '16', title: 'Srpski Jezik', start: '08:00', end: '08:45', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-emerald-500' },
-                    { id: '17', title: 'Likovna Kultura', start: '08:50', end: '09:35', room: 'Atelje', teacher: 'Prof. Lukić', notes: 'Blok 5', color: 'bg-rose-500' },
-                    { id: '18', title: 'Muzička Kultura', start: '09:50', end: '10:35', room: 'Muzeutika', teacher: 'Prof. Kostić', notes: '', color: 'bg-amber-500' },
-                    { id: '19', title: 'Engleski Jezik', start: '10:40', end: '11:25', room: '18', teacher: 'Prof. Smith', notes: '', color: 'bg-purple-500' },
-                    { id: '20', title: 'Fizika', start: '11:30', end: '12:15', room: '15', teacher: 'Prof. Ilić', notes: '', color: 'bg-blue-500' }
-                ],
-                5: [ // Petak
-                    { id: '21', title: 'Strani Jezik 2', start: '08:00', end: '08:45', room: '11', teacher: 'Prof. Müller', notes: '', color: 'bg-purple-500' },
-                    { id: '22', title: 'Matematika', start: '08:50', end: '09:35', room: '12', teacher: 'Prof. Petrović', notes: 'Kontrolni', color: 'bg-blue-500' },
-                    { id: '23', title: 'Geografija', start: '09:50', end: '10:35', room: '07', teacher: 'Prof. Jović', notes: '', color: 'bg-amber-500' },
-                    { id: '24', title: 'Istorija', start: '10:40', end: '11:25', room: '09', teacher: 'Prof. Stanković', notes: '', color: 'bg-emerald-500' },
-                    { id: '25', title: 'Čas Odelj. Starešine', start: '11:30', end: '12:15', room: '12', teacher: 'Razredni', notes: '', color: 'bg-rose-500' }
-                ]
-            },
-            'B': {
-                1: [ // Ponedeljak (Popodne)
-                    { id: '101', title: 'Matematika', start: '13:00', end: '13:45', room: '12', teacher: 'Prof. Petrović', notes: '', color: 'bg-blue-500' },
-                    { id: '102', title: 'Srpski Jezik', start: '13:50', end: '14:35', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-emerald-500' },
-                    { id: '103', title: 'Engleski Jezik', start: '14:50', end: '15:35', room: '18', teacher: 'Prof. Smith', notes: '', color: 'bg-purple-500' },
-                    { id: '104', title: 'Fizičko Vaspitanje', start: '15:40', end: '16:25', room: 'Sala 1', teacher: 'Prof. Marković', notes: '', color: 'bg-rose-500' },
-                    { id: '105', title: 'Istorija', start: '16:30', end: '17:15', room: '09', teacher: 'Prof. Stanković', notes: '', color: 'bg-amber-500' }
-                ],
-                2: [ // Utorak
-                    { id: '106', title: 'Fizika', start: '13:00', end: '13:45', room: '15', teacher: 'Prof. Ilić', notes: '', color: 'bg-blue-500' },
-                    { id: '107', title: 'Hemija', start: '13:50', end: '14:35', room: '16', teacher: 'Prof. Popović', notes: '', color: 'bg-emerald-500' },
-                    { id: '108', title: 'Geografija', start: '14:50', end: '15:35', room: '07', teacher: 'Prof. Jović', notes: '', color: 'bg-amber-500' },
-                    { id: '109', title: 'Biologija', start: '15:40', end: '16:25', room: '03', teacher: 'Prof. Cvetković', notes: '', color: 'bg-purple-500' },
-                    { id: '110', title: 'Informatika', start: '16:30', end: '17:15', room: 'Kabinet', teacher: 'Prof. Tasić', notes: '', color: 'bg-blue-500' }
-                ],
-                3: [ // Sreda
-                    { id: '111', title: 'Informatika', start: '13:00', end: '13:45', room: 'Kab 2', teacher: 'Prof. Tasić', notes: '', color: 'bg-purple-500' },
-                    { id: '112', title: 'Matematika', start: '13:50', end: '14:35', room: '12', teacher: 'Prof. Petrović', notes: '', color: 'bg-blue-500' },
-                    { id: '113', title: 'Biologija', start: '14:50', end: '15:35', room: '03', teacher: 'Prof. Cvetković', notes: '', color: 'bg-emerald-500' },
-                    { id: '114', title: 'Srpski Jezik', start: '15:40', end: '16:25', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-rose-500' },
-                    { id: '115', title: 'Muzička Kultura', start: '16:30', end: '17:15', room: 'Muzeutika', teacher: 'Prof. Kostić', notes: '', color: 'bg-amber-500' }
-                ],
-                4: [ // Četvrtak
-                    { id: '116', title: 'Srpski Jezik', start: '13:00', end: '13:45', room: '04', teacher: 'Prof. Nikolić', notes: '', color: 'bg-emerald-500' },
-                    { id: '117', title: 'Likovna Kultura', start: '13:50', end: '14:35', room: 'Atelje', teacher: 'Prof. Lukić', notes: '', color: 'bg-rose-500' },
-                    { id: '118', title: 'Muzička Kultura', start: '14:50', end: '15:35', room: 'Muzeutika', teacher: 'Prof. Kostić', notes: '', color: 'bg-amber-500' },
-                    { id: '119', title: 'Engleski Jezik', start: '15:40', end: '16:25', room: '18', teacher: 'Prof. Smith', notes: '', color: 'bg-purple-500' },
-                    { id: '120', title: 'Fizika', start: '16:30', end: '17:15', room: '15', teacher: 'Prof. Ilić', notes: '', color: 'bg-blue-500' }
-                ],
-                5: [ // Petak
-                    { id: '121', title: 'Strani Jezik 2', start: '13:00', end: '13:45', room: '11', teacher: 'Prof. Müller', notes: '', color: 'bg-purple-500' },
-                    { id: '122', title: 'Matematika', start: '13:50', end: '14:35', room: '12', teacher: 'Prof. Petrović', notes: '', color: 'bg-blue-500' },
-                    { id: '123', title: 'Geografija', start: '14:50', end: '15:35', room: '07', teacher: 'Prof. Jović', notes: '', color: 'bg-amber-500' },
-                    { id: '124', title: 'Istorija', start: '15:40', end: '16:25', room: '09', teacher: 'Prof. Stanković', notes: '', color: 'bg-emerald-500' },
-                    { id: '125', title: 'Čas Odelj. Starešine', start: '16:30', end: '17:15', room: '12', teacher: 'Razredni', notes: '', color: 'bg-rose-500' }
-                ]
-            }
-        };
-
-        let currentShift = localStorage.getItem('skolski_shift') || 'A';
-        let currentDay = new Date().getDay(); 
-        if (currentDay === 0 || currentDay === 6) currentDay = 1;
-        let scheduleData = initialSchedule;
-
-        const scheduleRef = ref(db, 'skolski_asistent/raspored_v2');
-
-        // Slušaj promene sa Firebase-a u realnom vremenu
-        onValue(scheduleRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                scheduleData = data;
-                renderSchedule();
-            } else {
-                // Ako je baza prazna, upisi inicijalne podatke sa 5 časova
-                set(scheduleRef, initialSchedule);
-            }
-        });
-
-        window.saveToFirebase = function() {
-            set(scheduleRef, scheduleData);
-        }
-
-        window.toggleShift = function() {
-            currentShift = currentShift === 'A' ? 'B' : 'A';
-            localStorage.setItem('skolski_shift', currentShift);
-            updateShiftUI();
-            renderSchedule();
-        }
-
-        window.switchDay = function(dayNum) {
-            currentDay = dayNum;
-            document.querySelectorAll('.day-tab').forEach(btn => {
-                const btnDay = parseInt(btn.getAttribute('data-day'));
-                if (btnDay === dayNum) {
-                    btn.className = 'day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-indigo-600 text-white border-indigo-600';
-                } else {
-                    btn.className = 'day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
-                }
-            });
-            document.getElementById('selected-day-title').innerText = dayNames[dayNum];
-            renderSchedule();
-        }
-
-        const dayNames = { 1: 'Ponedeljak', 2: 'Utorak', 3: 'Sreda', 4: 'Četvrtak', 5: 'Petak' };
-
-        function updateShiftUI() {
-            document.getElementById('shift-label').innerText = currentShift;
-            document.getElementById('current-shift-badge').innerText = `Smena ${currentShift} (${currentShift === 'A' ? 'Pre podne' : 'Posle podne'})`;
-        }
-
-        function renderSchedule() {
-            updateShiftUI();
-            const listContainer = document.getElementById('schedule-list');
-            const emptyState = document.getElementById('empty-state');
-            const countBadge = document.getElementById('subject-count-badge');
-            
-            const dayItems = (scheduleData[currentShift] && scheduleData[currentShift][currentDay]) ? scheduleData[currentShift][currentDay] : [];
-
-            countBadge.innerText = `${dayItems.length} časova`;
-
-            if (dayItems.length === 0) {
-                listContainer.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                return;
-            }
-
-            emptyState.classList.add('hidden');
-            dayItems.sort((a, b) => a.start.localeCompare(b.start));
-
-            listContainer.innerHTML = dayItems.map((item, index) => {
-                return `
-                    <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative overflow-hidden group">
-                        <div class="absolute left-0 top-0 bottom-0 w-2 ${item.color || 'bg-indigo-500'}"></div>
-                        <div class="pl-2 flex items-start gap-3">
-                            <div class="bg-slate-100 px-2.5 py-1.5 rounded-xl text-center min-w-[60px]">
-                                <span class="block text-xs font-bold text-slate-700">#${index + 1}</span>
-                                <span class="block text-[10px] text-slate-500 font-mono">${item.start}</span>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-slate-800 text-base">${item.title}</h4>
-                                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-0.5">
-                                    ${item.room ? `<span><i class="fa-solid fa-door-open text-slate-400 mr-1"></i>${item.room}</span>` : ''}
-                                    ${item.teacher ? `<span><i class="fa-solid fa-user-tie text-slate-400 mr-1"></i>${item.teacher}</span>` : ''}
-                                    <span><i class="fa-regular fa-clock text-slate-400 mr-1"></i>${item.start} - ${item.end}</span>
-                                </div>
-                                ${item.notes ? `<p class="text-xs bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md mt-1.5 inline-block border border-amber-200/60"><i class="fa-solid fa-triangle-exclamation mr-1"></i>${item.notes}</p>` : ''}
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-1 self-end sm:self-center">
-                            <button onclick="editSubject('${item.id}')" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Izmeni"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick="deleteSubject('${item.id}')" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Obriši"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>`;
-            }).join('');
-        }
-
-        window.openAddModal = function() {
-            document.getElementById('modal-title').innerText = 'Dodaj Novi Čas';
-            document.getElementById('form-id').value = '';
-            document.getElementById('form-title').value = '';
-            document.getElementById('form-start').value = '08:00';
-            document.getElementById('form-end').value = '08:45';
-            document.getElementById('form-room').value = '';
-            document.getElementById('form-teacher').value = '';
-            document.getElementById('form-notes').value = '';
-            document.getElementById('subject-modal').classList.remove('hidden');
-        }
-
-        window.closeAddModal = function() {
-            document.getElementById('subject-modal').classList.add('hidden');
-        }
-
-        window.saveSubject = function(e) {
-            e.preventDefault();
-            const id = document.getElementById('form-id').value || 'sub_' + Date.now();
-            const title = document.getElementById('form-title').value;
-            const start = document.getElementById('form-start').value;
-            const end = document.getElementById('form-end').value;
-            const room = document.getElementById('form-room').value;
-            const teacher = document.getElementById('form-teacher').value;
-            const notes = document.getElementById('form-notes').value;
-            const color = document.querySelector('input[name="color"]:checked').value;
-
-            if (!scheduleData[currentShift]) scheduleData[currentShift] = {};
-            if (!scheduleData[currentShift][currentDay]) scheduleData[currentShift][currentDay] = [];
-
-            const existingIndex = scheduleData[currentShift][currentDay].findIndex(s => s.id === id);
-            const subjectObj = { id, title, start, end, room, teacher, notes, color };
-
-            if (existingIndex > -1) {
-                scheduleData[currentShift][currentDay][existingIndex] = subjectObj;
-            } else {
-                scheduleData[currentShift][currentDay].push(subjectObj);
-            }
-
-            saveToFirebase();
-            closeAddModal();
-        }
-
-        window.editSubject = function(id) {
-            const dayItems = scheduleData[currentShift][currentDay] || [];
-            const item = dayItems.find(s => s.id === id);
-            if (!item) return;
-
-            document.getElementById('modal-title').innerText = 'Izmeni Čas';
-            document.getElementById('form-id').value = item.id;
-            document.getElementById('form-title').value = item.title;
-            document.getElementById('form-start').value = item.start;
-            document.getElementById('form-end').value = item.end;
-            document.getElementById('form-room').value = item.room || '';
-            document.getElementById('form-teacher').value = item.teacher || '';
-            document.getElementById('form-notes').value = item.notes || '';
-            
-            document.querySelectorAll('input[name="color"]').forEach(radio => {
-                radio.checked = (radio.value === item.color);
-            });
-
-            document.getElementById('subject-modal').classList.remove('hidden');
-        }
-
-        window.deleteSubject = function(id) {
-            if (confirm('Da li ste sigurni da želite da obrišete ovaj čas?')) {
-                scheduleData[currentShift][currentDay] = scheduleData[currentShift][currentDay].filter(s => s.id !== id);
-                saveToFirebase();
-            }
-        }
-
-        window.openLockscreenModal = function() {
-            generateLockscreenCard('today');
-            document.getElementById('lockscreen-modal').classList.remove('hidden');
-        }
-
-        window.closeLockscreenModal = function() {
-            document.getElementById('lockscreen-modal').classList.add('hidden');
-        }
-
-        window.generateLockscreenCard = function(target) {
-            const targetDay = target === 'today' ? currentDay : (currentDay === 5 ? 1 : currentDay + 1);
-            document.getElementById('ls-btn-today').className = target === 'today' ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white' : 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200';
-            document.getElementById('ls-btn-tomorrow').className = target === 'tomorrow' ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white' : 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200';
-            
-            document.getElementById('ls-day-badge').innerText = `${target === 'today' ? 'DANAS' : 'SUTRA'} • ${dayNames[targetDay].toUpperCase()}`;
-            document.getElementById('ls-shift').innerText = currentShift;
-
-            const dayItems = (scheduleData[currentShift] && scheduleData[currentShift][targetDay]) ? scheduleData[currentShift][targetDay] : [];
-            const listEl = document.getElementById('ls-list');
-
-            if (dayItems.length === 0) {
-                listEl.innerHTML = '<p class="text-center text-slate-400 py-4">Nema unetih časova</p>';
-                return;
-            }
-
-            listEl.innerHTML = dayItems.map((item, idx) => `
-                <div class="flex items-center justify-between bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-700">
-                    <div>
-                        <span class="text-indigo-400 font-mono font-bold mr-2">#${idx+1}</span>
-                        <span class="font-bold text-white">${item.title}</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400 font-mono">${item.start}</span>
-                </div>
-            `).join('');
-        }
-
-        window.downloadLockscreenImage = function() {
-            const card = document.getElementById('lockscreen-card-export');
-            html2canvas(card, { scale: 3 }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = 'skolski-raspored-lockscreen.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            });
-        }
-
-        window.openNotificationsModal = function() { document.getElementById('notif-modal').classList.remove('hidden'); }
-        window.closeNotificationsModal = function() { document.getElementById('notif-modal').classList.add('hidden'); }
-        window.openPrintView = function() { window.print(); }
-
-        window.requestNotificationPermission = function() {
-            Notification.requestPermission().then(permission => {
-                document.getElementById('notif-status-text').innerText = `Status: ${permission === 'granted' ? 'Omogućeno' : 'Odbijeno'}`;
-            });
-        }
-
-        function checkNotificationsPermissionStatus() {
-            if ("Notification" in window) {
-                document.getElementById('notif-status-text').innerText = `Status: ${Notification.permission === 'granted' ? 'Omogućeno' : 'Nije omogućeno'}`;
-            }
-        }
-
-        function startLiveTimer() {
-            setInterval(() => {
-                const now = new Date();
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const seconds = String(now.getSeconds()).padStart(2, '0');
-                document.getElementById('widget-timer').innerText = `${hours}:${minutes}:${seconds}`;
-            }, 1000);
-        }
-    </script>
 
     <style>
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
             body { background: white; color: black; }
+        }
+
+        .pulse-border {
+            animation: pulse-ring 2s infinite;
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
         }
     </style>
 </head>
@@ -371,20 +43,30 @@
                     <i class="fa-solid fa-graduation-cap"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight">Školski Asistent</h1>
+                    <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
+                        Školski Asistent
+                        <span id="role-badge" class="text-[10px] bg-indigo-800 text-indigo-200 font-normal px-2 py-0.5 rounded-full border border-indigo-500/30">Učitavanje...</span>
+                    </h1>
                     <p class="text-xs text-indigo-200" id="current-shift-badge">Smena A (Pre podne)</p>
                 </div>
             </div>
+            
             <div class="flex items-center gap-2">
-                <button onclick="toggleShift()" class="bg-indigo-700 hover:bg-indigo-800 text-xs text-indigo-100 px-3 py-1.5 rounded-lg transition border border-indigo-500/30 flex items-center gap-1.5">
+                <!-- Sync Status Indicator -->
+                <div id="sync-status" class="bg-indigo-700/80 text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-indigo-500/30" title="Kod porodične sinhronizacije">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" id="sync-dot"></span>
+                    <span class="font-mono font-bold hidden sm:inline" id="family-code-display">KOD: ---</span>
+                </div>
+
+                <button onclick="openSyncModal()" class="bg-indigo-500 hover:bg-indigo-400 p-2 rounded-lg text-white transition text-sm" title="Postavke Sinhronizacije & Uloge">
+                    <i class="fa-solid fa-key"></i>
+                </button>
+                <button onclick="toggleShift()" class="bg-indigo-700 hover:bg-indigo-800 text-xs text-indigo-100 px-3 py-1.5 rounded-lg transition border border-indigo-500/30 flex items-center gap-1">
                     <i class="fa-solid fa-repeat"></i>
-                    <span class="hidden sm:inline">Promeni smenu:</span> <strong id="shift-label">A</strong>
+                    <span class="hidden sm:inline">Smena:</span> <strong id="shift-label">A</strong>
                 </button>
-                <button onclick="openPrintView()" class="bg-indigo-500 hover:bg-indigo-400 p-2 rounded-lg text-white transition text-sm" title="Odštampaj">
+                <button onclick="openPrintView()" class="bg-indigo-500 hover:bg-indigo-400 p-2 rounded-lg text-white transition text-sm" title="Štampa rasporeda">
                     <i class="fa-solid fa-print"></i>
-                </button>
-                <button onclick="openNotificationsModal()" class="bg-indigo-500 hover:bg-indigo-400 p-2 rounded-lg text-white transition text-sm">
-                    <i class="fa-solid fa-bell"></i>
                 </button>
             </div>
         </div>
@@ -392,35 +74,38 @@
 
     <main class="max-w-5xl mx-auto w-full px-4 py-4 flex-grow space-y-5">
 
-        <!-- Vremenski Widget -->
-        <section class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-4 shadow-lg no-print">
+        <section id="live-widget" class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-2xl p-4 shadow-lg no-print transition-all">
             <div class="flex flex-col md:flex-row justify-between md:items-center gap-3">
                 <div class="flex items-center gap-3">
                     <div class="bg-white/20 backdrop-blur-md p-3 rounded-xl text-center min-w-[65px]">
-                        <span class="block text-xs uppercase tracking-wider font-semibold opacity-80">DAN</span>
-                        <span id="widget-day-num" class="block text-xl font-extrabold leading-none">12</span>
+                        <span id="widget-day-name" class="block text-xs uppercase tracking-wider font-semibold opacity-80">PON</span>
+                        <span id="widget-day-num" class="block text-xl font-extrabold leading-none">--</span>
                     </div>
                     <div>
                         <div class="inline-flex items-center gap-2 text-xs font-semibold bg-white/20 px-2.5 py-0.5 rounded-full mb-1">
                             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span>Firebase Sinhronizovano</span>
+                            <span id="widget-status-text">Status nastave</span>
                         </div>
-                        <h2 class="text-xl font-extrabold tracking-tight">Školski Raspored u Realnom Vremenu</h2>
+                        <h2 id="widget-subject-title" class="text-xl font-extrabold tracking-tight">Učitavanje...</h2>
+                        <p id="widget-details" class="text-xs text-indigo-100 flex items-center gap-3 mt-0.5">
+                            <span><i class="fa-solid fa-door-open mr-1"></i><span id="widget-room">-</span></span>
+                            <span><i class="fa-solid fa-user-tie mr-1"></i><span id="widget-teacher">-</span></span>
+                        </p>
                     </div>
                 </div>
+
                 <div class="bg-black/20 backdrop-blur-sm rounded-xl px-4 py-2 flex items-center justify-between md:justify-end gap-4 border border-white/10">
                     <div class="text-left md:text-right">
-                        <span class="block text-[10px] text-blue-200 uppercase tracking-wider">Trenutno Vreme</span>
-                        <span id="widget-timer" class="text-2xl font-mono font-bold tracking-wider">00:00:00</span>
+                        <span class="block text-[10px] text-indigo-200 uppercase tracking-wider">Preostalo vreme</span>
+                        <span id="widget-timer" class="text-2xl font-mono font-bold tracking-wider">--:--</span>
                     </div>
                     <div class="text-2xl opacity-70">
-                        <i class="fa-solid fa-clock text-amber-300"></i>
+                        <i class="fa-solid fa-hourglass-half text-amber-300"></i>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Navigacija po danima i akcije -->
         <div class="flex flex-wrap items-center justify-between gap-3 no-print">
             <div class="flex items-center gap-1 overflow-x-auto pb-1 w-full md:w-auto" id="day-tabs">
                 <button onclick="switchDay(1)" data-day="1" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-indigo-600 text-white border-indigo-600">Ponedeljak</button>
@@ -429,136 +114,718 @@
                 <button onclick="switchDay(4)" data-day="4" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Četvrtak</button>
                 <button onclick="switchDay(5)" data-day="5" class="day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50">Petak</button>
             </div>
+
             <div class="flex items-center gap-2 w-full md:w-auto justify-end">
-                <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> Dodaj čas
-                </button>
                 <button onclick="openLockscreenModal()" class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2">
                     <i class="fa-solid fa-mobile-screen-button text-amber-400"></i> Pozadina
                 </button>
             </div>
         </div>
 
-        <!-- Lista časova -->
-        <section class="no-print">
-            <div class="flex items-center justify-between mb-3 px-1">
+        <section class="no-print space-y-3">
+            <div class="flex items-center justify-between px-1">
                 <h3 class="font-bold text-slate-700 text-base flex items-center gap-2">
                     <i class="fa-regular fa-calendar-days text-indigo-600"></i>
-                    <span id="selected-day-title">Ponedeljak</span> - Raspored
+                    <span id="selected-day-title">Ponedeljak</span> - Raspored (Tačno 5 časova)
                 </h3>
-                <span id="subject-count-badge" class="text-xs bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-full font-medium">5 časova</span>
+                <span class="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full font-semibold">5 časova</span>
             </div>
 
-            <div id="schedule-list" class="space-y-3"></div>
-
-            <div id="empty-state" class="hidden bg-white border border-dashed border-slate-300 rounded-2xl p-8 text-center my-4">
-                <i class="fa-solid fa-mug-hot text-3xl text-slate-300 mb-2"></i>
-                <p class="text-slate-500 font-medium text-sm">Nema unetih časova za ovaj dan u ovoj smeni.</p>
-                <button onclick="openAddModal()" class="mt-3 text-indigo-600 font-semibold text-xs hover:underline">Dodaj prvi čas</button>
+            <!-- Lista 5 fiksnih časova -->
+            <div id="schedule-slots-container" class="space-y-3">
+                <!-- Renderuje JS dinamicki (5 časova) -->
             </div>
         </section>
 
+        <section class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 flex items-start gap-3 no-print">
+            <div class="text-emerald-600 text-xl mt-0.5"><i class="fa-solid fa-sync"></i></div>
+            <div class="space-y-1">
+                <h4 class="font-bold">Sinhronizacija u Realnom Vremenu (Kuća → Dete):</h4>
+                <p class="text-emerald-800/90 leading-relaxed">
+                    Sve izmene koje roditelj unese na laptopu (naziv predmeta, učionica, oprema ili domaći) odmah se pojavljuju na detetovom telefonu zahvaljujući Firebase vezi. Povežite uređaje pomoću istog <strong>Porodičnog Koda</strong>!
+                </p>
+            </div>
+        </section>
+
+        <!-- TABLE FOR PRINTING ONLY -->
+        <div class="hidden print-only p-4">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-black uppercase tracking-wider">Školski Raspored Časova</h1>
+                <p class="text-sm text-gray-600">Smena: <span id="print-shift-name">A</span> | Porodična Sinhronizacija</p>
+            </div>
+
+            <table class="w-full border-collapse border border-gray-400 text-xs">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="border border-gray-400 p-2 text-center w-10">Čas</th>
+                        <th class="border border-gray-400 p-2 text-center w-24">Vreme</th>
+                        <th class="border border-gray-400 p-2">Ponedeljak</th>
+                        <th class="border border-gray-400 p-2">Utorak</th>
+                        <th class="border border-gray-400 p-2">Sreda</th>
+                        <th class="border border-gray-400 p-2">Četvrtak</th>
+                        <th class="border border-gray-400 p-2">Petak</th>
+                    </tr>
+                </thead>
+                <tbody id="print-table-body">
+                    <!-- Popunjava JS -->
+                </tbody>
+            </table>
+        </div>
+
     </main>
 
-    <!-- Modal za dodavanje/izmenu -->
-    <div id="subject-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <!-- MODAL: SINHRONIZACIJA & ULOGE -->
+    <div id="sync-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-wifi text-indigo-600"></i> Porodična Sinhronizacija
+                </h3>
+                <button onclick="closeSyncModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Izaberi Ulogu Uređaja:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="setRole('parent')" id="btn-role-parent" class="py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 border-indigo-600 bg-indigo-50 text-indigo-700">
+                            <i class="fa-solid fa-user-shield text-base"></i>
+                            Režim Roditelj (Moguća Izmena)
+                        </button>
+                        <button type="button" onclick="setRole('child')" id="btn-role-child" class="py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 border-slate-200 text-slate-600">
+                            <i class="fa-solid fa-child text-base"></i>
+                            Režim Dete (Prikaz & Podsetnici)
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Porodični Kod za Povezivanje (Family Key):</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="sync-code-input" placeholder="npr. PORODICA123" class="w-full px-3 py-2 border rounded-xl text-sm uppercase tracking-wider font-mono font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <button onclick="generateRandomSyncCode()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap">Generiši</button>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1">Ukucajte isti ovaj kod i na laptopu i na telefonu deteta kako bi se raspored sinhronizovao.</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t">
+                <button onclick="saveSyncSettings()" class="w-full py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">Poveži i Sačuvaj</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT CLASS (Samo za Roditelja) -->
+    <div id="edit-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
         <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b pb-3">
-                <h3 id="modal-title" class="font-bold text-slate-800 text-lg">Dodaj Čas</h3>
-                <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <h3 class="font-bold text-slate-800 text-lg" id="edit-modal-title">Izmeni Čas #1</h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
             </div>
-            <form onsubmit="saveSubject(event)" class="space-y-3">
-                <input type="hidden" id="form-id">
+
+            <form id="edit-form" onsubmit="saveClassDetails(event)" class="space-y-3">
+                <input type="hidden" id="edit-slot-index">
+                
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Naziv Predmeta *</label>
-                    <input type="text" id="form-title" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <input type="text" id="edit-title" required placeholder="npr. Matematika" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Početak *</label>
-                        <input type="time" id="form-start" required class="w-full px-3 py-2 border rounded-xl text-sm">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Vreme Početka</label>
+                        <input type="time" id="edit-start" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kraj *</label>
-                        <input type="time" id="form-end" required class="w-full px-3 py-2 border rounded-xl text-sm">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Vreme Kraja</label>
+                        <input type="time" id="edit-end" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                     </div>
                 </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kabinet</label>
-                        <input type="text" id="form-room" class="w-full px-3 py-2 border rounded-xl text-sm">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kabinet / Učionica</label>
+                        <input type="text" id="edit-room" placeholder="npr. 12" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Profesor</label>
-                        <input type="text" id="form-teacher" class="w-full px-3 py-2 border rounded-xl text-sm">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nastavnik / Profesor</label>
+                        <input type="text" id="edit-teacher" placeholder="npr. Prof. Nikolić" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                     </div>
                 </div>
+
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Beleške / Oprema</label>
-                    <input type="text" id="form-notes" class="w-full px-3 py-2 border rounded-xl text-sm">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Oprema / Domaći / Zabeleška za dete</label>
+                    <input type="text" id="edit-notes" placeholder="npr. Ponesi opremu za fizičko i blok 5!" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
+
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Boja</label>
-                    <div class="flex gap-2 pt-1">
-                        <label class="cursor-pointer"><input type="radio" name="color" value="bg-blue-500" class="peer hidden" checked><span class="w-7 h-7 bg-blue-500 rounded-full block peer-checked:ring-2 peer-checked:ring-slate-800"></span></label>
-                        <label class="cursor-pointer"><input type="radio" name="color" value="bg-emerald-500" class="peer hidden"><span class="w-7 h-7 bg-emerald-500 rounded-full block peer-checked:ring-2 peer-checked:ring-slate-800"></span></label>
-                        <label class="cursor-pointer"><input type="radio" name="color" value="bg-purple-500" class="peer hidden"><span class="w-7 h-7 bg-purple-500 rounded-full block peer-checked:ring-2 peer-checked:ring-slate-800"></span></label>
-                        <label class="cursor-pointer"><input type="radio" name="color" value="bg-amber-500" class="peer hidden"><span class="w-7 h-7 bg-amber-500 rounded-full block peer-checked:ring-2 peer-checked:ring-slate-800"></span></label>
-                        <label class="cursor-pointer"><input type="radio" name="color" value="bg-rose-500" class="peer hidden"><span class="w-7 h-7 bg-rose-500 rounded-full block peer-checked:ring-2 peer-checked:ring-slate-800"></span></label>
-                    </div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Boja kartice</label>
+                    <select id="edit-color" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="bg-indigo-600">Ljubičasta / Indigo</option>
+                        <option value="bg-blue-600">Plava</option>
+                        <option value="bg-emerald-600">Zelena</option>
+                        <option value="bg-amber-600">Narandžasta</option>
+                        <option value="bg-rose-600">Crvena</option>
+                        <option value="bg-slate-700">Siva</option>
+                    </select>
                 </div>
+
                 <div class="flex justify-end gap-2 pt-3 border-t">
-                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600">Otkaži</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white shadow-sm">Sačuvaj</button>
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Otkaži</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">Sačuvaj Promenu</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal za Pozadinu -->
+    <!-- MODAL: LOCKSCREEN EXPORT -->
     <div id="lockscreen-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
         <div class="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl space-y-3">
             <div class="flex justify-between items-center border-b pb-2">
                 <h3 class="font-bold text-slate-800 text-base">Pozadina za Zaključani Ekran</h3>
-                <button onclick="closeLockscreenModal()"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeLockscreenModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
             </div>
+
             <div class="flex gap-2">
                 <button onclick="generateLockscreenCard('today')" id="ls-btn-today" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white">Danas</button>
-                <button onclick="generateLockscreenCard('tomorrow')" id="ls-btn-tomorrow" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600">Sutra</button>
+                <button onclick="generateLockscreenCard('tomorrow')" id="ls-btn-tomorrow" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">Sutra</button>
             </div>
+
             <div class="flex justify-center my-2">
                 <div id="lockscreen-card-export" class="w-[260px] bg-slate-900 text-white rounded-3xl p-5 shadow-2xl border border-slate-700 relative overflow-hidden">
+                    <div class="absolute -right-8 -top-8 w-24 h-24 bg-indigo-500/20 rounded-full blur-xl"></div>
+                    
                     <div class="text-center border-b border-slate-800 pb-3 mb-3">
-                        <span id="ls-day-badge" class="text-[10px] font-bold uppercase tracking-widest text-indigo-400">DANAS</span>
+                        <span id="ls-day-badge" class="text-[10px] font-bold uppercase tracking-widest text-indigo-400">SUTRA • ČETVRTAK</span>
                         <h4 class="text-lg font-extrabold text-white">Raspored Časova</h4>
                         <p class="text-[10px] text-slate-400">Smena: <span id="ls-shift">A</span></p>
                     </div>
-                    <div id="ls-list" class="space-y-2 text-xs"></div>
-                </div>
-            </div>
-            <button onclick="downloadLockscreenImage()" class="w-full py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-sm shadow">Preuzmi Sliku</button>
-        </div>
-    </div>
 
-    <!-- Modal za Notifikacije -->
-    <div id="notif-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-bold text-slate-800 text-base">Obaveštenja</h3>
-                <button onclick="closeNotificationsModal()"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="space-y-3">
-                <div class="bg-indigo-50 p-3 rounded-xl flex items-center justify-between">
-                    <div>
-                        <h4 class="font-bold text-xs text-indigo-950">Dozvola</h4>
-                        <p class="text-[11px] text-indigo-700" id="notif-status-text">Status: Nije omogućeno</p>
+                    <div id="ls-list" class="space-y-2 text-xs">
+                        <!-- Ubacuje JS -->
                     </div>
-                    <button onclick="requestNotificationPermission()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Omogući</button>
+
+                    <div class="mt-4 pt-2 border-t border-slate-800 text-center text-[9px] text-slate-500">
+                        📱 Školski Asistent • Live Sync
+                    </div>
                 </div>
             </div>
-            <button onclick="closeNotificationsModal()" class="w-full py-2 bg-indigo-600 text-white font-semibold rounded-xl text-xs">Zatvori</button>
+
+            <button onclick="downloadLockscreenImage()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow flex items-center justify-center gap-2">
+                <i class="fa-solid fa-download"></i> Preuzmi Sliku Pozadine
+            </button>
         </div>
     </div>
 
+    <!-- Firebase JS SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Konfiguracija i Firebase App ID
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'skolski-raspored-default';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyDemoConfigForSchoolAppOnly12345",
+            authDomain: "demo-school.firebaseapp.com",
+            projectId: "demo-school",
+            storageBucket: "demo-school.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Zadani podaci za 2 smene (A i B) po 5 časova za svaki dan
+        const defaultSlotsA = [
+            { start: '08:00', end: '08:45' },
+            { start: '08:50', end: '09:35' },
+            { start: '09:50', end: '10:35' },
+            { start: '10:40', end: '11:25' },
+            { start: '11:30', end: '12:15' }
+        ];
+
+        const defaultSlotsB = [
+            { start: '13:00', end: '13:45' },
+            { start: '13:50', end: '14:35' },
+            { start: '14:50', end: '15:35' },
+            { start: '15:40', end: '16:25' },
+            { start: '16:30', end: '17:15' }
+        ];
+
+        function createEmptyDay(slots) {
+            return slots.map((s, idx) => ({
+                slot: idx + 1,
+                title: 'Slobodan čas',
+                start: s.start,
+                end: s.end,
+                room: '',
+                teacher: '',
+                notes: '',
+                color: 'bg-indigo-600'
+            }));
+        }
+
+        function createInitialSchedule() {
+            const sch = { A: {}, B: {} };
+            for (let d = 1; d <= 5; d++) {
+                sch.A[d] = createEmptyDay(defaultSlotsA);
+                sch.B[d] = createEmptyDay(defaultSlotsB);
+            }
+            // Primer unosa za test
+            sch.A[1][0] = { slot: 1, title: 'Matematika', start: '08:00', end: '08:45', room: '12', teacher: 'Prof. Petrović', notes: 'Zbirka zadataka str. 40', color: 'bg-blue-600' };
+            sch.A[1][1] = { slot: 2, title: 'Srpski Jezik', start: '08:50', end: '09:35', room: '04', teacher: 'Prof. Nikolić', notes: 'Čitati lektiru', color: 'bg-emerald-600' };
+            sch.A[1][2] = { slot: 3, title: 'Fizičko', start: '09:50', end: '10:35', room: 'Sala 1', teacher: 'Prof. Marković', notes: 'Ponesi patike i opremu!', color: 'bg-rose-600' };
+            sch.A[1][3] = { slot: 4, title: 'Engleski', start: '10:40', end: '11:25', room: '18', teacher: 'Prof. Smith', notes: '', color: 'bg-purple-600' };
+            sch.A[1][4] = { slot: 5, title: 'Istorija', start: '11:30', end: '12:15', room: '09', teacher: 'Prof. Stanković', notes: '', color: 'bg-amber-600' };
+            return sch;
+        }
+
+        // Stanje aplikacije
+        window.appState = {
+            familyCode: localStorage.getItem('skolski_family_code') || 'PORODICA1',
+            role: localStorage.getItem('skolski_role') || 'parent', // 'parent' ili 'child'
+            currentShift: localStorage.getItem('skolski_shift') || 'A',
+            currentDay: (new Date().getDay() >= 1 && new Date().getDay() <= 5) ? new Date().getDay() : 1,
+            schedule: createInitialSchedule(),
+            unsubscribeListener: null
+        };
+
+        const dayNames = { 1: 'Ponedeljak', 2: 'Utorak', 3: 'Sreda', 4: 'Četvrtak', 5: 'Petak' };
+
+        // Autentifikacija i pokretanje
+        window.addEventListener('load', async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth error:", err);
+            }
+
+            updateRoleUI();
+            updateShiftUI();
+            setupFirestoreListener();
+            startLiveTimer();
+            setupPWA();
+        });
+
+        function setupFirestoreListener() {
+            if (window.appState.unsubscribeListener) {
+                window.appState.unsubscribeListener();
+            }
+
+            const code = window.appState.familyCode.toUpperCase().trim();
+            document.getElementById('family-code-display').innerText = `KOD: ${code}`;
+
+            // Firestore Path za javno deljene porodične podatke
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'familySchedules', code);
+
+            const syncDot = document.getElementById('sync-dot');
+            syncDot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+
+            window.appState.unsubscribeListener = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data && data.schedule) {
+                        window.appState.schedule = data.schedule;
+                    }
+                } else {
+                    // Ako dokument ne postoji, kreiraj sa početnim podacima
+                    if (window.appState.role === 'parent') {
+                        saveScheduleToFirestore();
+                    }
+                }
+                syncDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+                renderScheduleSlots();
+            }, (error) => {
+                console.error("Firestore sync error:", error);
+                syncDot.className = "w-2 h-2 rounded-full bg-rose-500";
+                renderScheduleSlots();
+            });
+        }
+
+        async function saveScheduleToFirestore() {
+            const code = window.appState.familyCode.toUpperCase().trim();
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'familySchedules', code);
+            try {
+                await setDoc(docRef, {
+                    schedule: window.appState.schedule,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+            } catch (err) {
+                console.error("Greška pri čuvanju na serveru:", err);
+            }
+        }
+
+        window.switchDay = function(dayNum) {
+            window.appState.currentDay = dayNum;
+            document.querySelectorAll('.day-tab').forEach(btn => {
+                const btnDay = parseInt(btn.getAttribute('data-day'));
+                if (btnDay === dayNum) {
+                    btn.className = 'day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-indigo-600 text-white border-indigo-600';
+                } else {
+                    btn.className = 'day-tab px-4 py-2 rounded-xl text-sm font-semibold transition border shadow-sm flex-1 md:flex-initial text-center whitespace-nowrap bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
+                }
+            });
+            document.getElementById('selected-day-title').innerText = dayNames[dayNum];
+            renderScheduleSlots();
+        };
+
+        window.toggleShift = function() {
+            window.appState.currentShift = window.appState.currentShift === 'A' ? 'B' : 'A';
+            localStorage.setItem('skolski_shift', window.appState.currentShift);
+            updateShiftUI();
+            renderScheduleSlots();
+        };
+
+        function updateShiftUI() {
+            const s = window.appState.currentShift;
+            document.getElementById('shift-label').innerText = s;
+            document.getElementById('current-shift-badge').innerText = `Smena ${s} (${s === 'A' ? 'Pre podne' : 'Posle podne'})`;
+        }
+
+        function updateRoleUI() {
+            const role = window.appState.role;
+            const badge = document.getElementById('role-badge');
+            if (role === 'parent') {
+                badge.innerText = 'Režim: Roditelj (Izmena)';
+                badge.className = 'text-[10px] bg-amber-500 text-slate-900 font-bold px-2 py-0.5 rounded-full';
+            } else {
+                badge.innerText = 'Režim: Dete (Prikaz)';
+                badge.className = 'text-[10px] bg-emerald-500 text-slate-900 font-bold px-2 py-0.5 rounded-full';
+            }
+        }
+
+        function renderScheduleSlots() {
+            const container = document.getElementById('schedule-slots-container');
+            const shift = window.appState.currentShift;
+            const day = window.appState.currentDay;
+            const isParent = window.appState.role === 'parent';
+
+            const daySlots = (window.appState.schedule[shift] && window.appState.schedule[shift][day]) 
+                ? window.appState.schedule[shift][day] 
+                : createEmptyDay(shift === 'A' ? defaultSlotsA : defaultSlotsB);
+
+            container.innerHTML = daySlots.map((item, idx) => `
+                <div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm hover:shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-2.5 ${item.color || 'bg-indigo-600'}"></div>
+                    
+                    <div class="pl-2 flex items-start gap-3">
+                        <div class="bg-slate-100 border border-slate-200 px-3 py-2 rounded-xl text-center min-w-[65px]">
+                            <span class="block text-xs font-extrabold text-slate-700">ČAS #${idx + 1}</span>
+                            <span class="block text-[10px] text-slate-500 font-mono font-semibold mt-0.5">${item.start} - ${item.end}</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-base">
+                                ${item.title}
+                            </h4>
+                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-0.5">
+                                ${item.room ? `<span><i class="fa-solid fa-door-open text-indigo-500 mr-1"></i>Kabinet: <strong>${item.room}</strong></span>` : ''}
+                                ${item.teacher ? `<span><i class="fa-solid fa-user-tie text-indigo-500 mr-1"></i>${item.teacher}</span>` : ''}
+                            </div>
+                            ${item.notes ? `
+                                <div class="mt-2 text-xs bg-amber-50 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-200/80 inline-block font-medium">
+                                    📌 ${item.notes}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    ${isParent ? `
+                        <div class="flex items-center gap-2 justify-end pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
+                            <button onclick="openEditModal(${idx})" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-pen"></i> Izmeni Čas
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function startLiveTimer() {
+            updateLiveWidget();
+            setInterval(updateLiveWidget, 1000);
+        }
+
+        function updateLiveWidget() {
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const currentTimeStr = `${hours}:${minutes}`;
+
+            const daysShort = ['NED', 'PON', 'UTO', 'SRE', 'ČET', 'PET', 'SUB'];
+            document.getElementById('widget-day-name').innerText = daysShort[dayOfWeek];
+            document.getElementById('widget-day-num').innerText = now.getDate();
+
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                document.getElementById('widget-status-text').innerText = 'Vikend';
+                document.getElementById('widget-subject-title').innerText = 'Nema nastave danas';
+                document.getElementById('widget-room').innerText = '-';
+                document.getElementById('widget-teacher').innerText = 'Slobodan dan';
+                document.getElementById('widget-timer').innerText = '00:00';
+                return;
+            }
+
+            const shift = window.appState.currentShift;
+            const todayClasses = (window.appState.schedule[shift] && window.appState.schedule[shift][dayOfWeek]) ? window.appState.schedule[shift][dayOfWeek] : [];
+
+            let activeClass = null;
+            let nextClass = null;
+
+            for (let c of todayClasses) {
+                if (c.title === 'Slobodan čas') continue;
+                if (currentTimeStr >= c.start && currentTimeStr < c.end) {
+                    activeClass = c;
+                    break;
+                } else if (currentTimeStr < c.start) {
+                    if (!nextClass) nextClass = c;
+                }
+            }
+
+            if (activeClass) {
+                document.getElementById('widget-status-text').innerText = `U toku je čas #${activeClass.slot}`;
+                document.getElementById('widget-subject-title').innerText = activeClass.title;
+                document.getElementById('widget-room').innerText = activeClass.room ? `Kabinet: ${activeClass.room}` : 'Kabinet: -';
+                document.getElementById('widget-teacher').innerText = activeClass.teacher || 'Nastavnik';
+
+                const endSecs = timeToSecs(activeClass.end);
+                const nowSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                document.getElementById('widget-timer').innerText = secsToMMSS(Math.max(0, endSecs - nowSecs));
+            } else if (nextClass) {
+                document.getElementById('widget-status-text').innerText = `Sledeći čas (#${nextClass.slot})`;
+                document.getElementById('widget-subject-title').innerText = nextClass.title;
+                document.getElementById('widget-room').innerText = nextClass.room ? `Kabinet: ${nextClass.room}` : 'Kabinet: -';
+                document.getElementById('widget-teacher').innerText = nextClass.teacher || 'Nastavnik';
+
+                const startSecs = timeToSecs(nextClass.start);
+                const nowSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                document.getElementById('widget-timer').innerText = secsToMMSS(Math.max(0, startSecs - nowSecs));
+            } else {
+                document.getElementById('widget-status-text').innerText = 'Završena nastava';
+                document.getElementById('widget-subject-title').innerText = 'Kraj nastave za danas';
+                document.getElementById('widget-room').innerText = '-';
+                document.getElementById('widget-teacher').innerText = 'Slobodno vreme';
+                document.getElementById('widget-timer').innerText = '00:00';
+            }
+        }
+
+        function timeToSecs(t) {
+            const [h, m] = t.split(':').map(Number);
+            return h * 3600 + m * 60;
+        }
+
+        function secsToMMSS(s) {
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+        }
+
+        window.openEditModal = function(slotIndex) {
+            const shift = window.appState.currentShift;
+            const day = window.appState.currentDay;
+            const item = window.appState.schedule[shift][day][slotIndex];
+
+            document.getElementById('edit-slot-index').value = slotIndex;
+            document.getElementById('edit-modal-title').innerText = `Izmeni Čas #${slotIndex + 1} (${dayNames[day]})`;
+            document.getElementById('edit-title').value = item.title === 'Slobodan čas' ? '' : item.title;
+            document.getElementById('edit-start').value = item.start;
+            document.getElementById('edit-end').value = item.end;
+            document.getElementById('edit-room').value = item.room || '';
+            document.getElementById('edit-teacher').value = item.teacher || '';
+            document.getElementById('edit-notes').value = item.notes || '';
+            document.getElementById('edit-color').value = item.color || 'bg-indigo-600';
+
+            document.getElementById('edit-modal').classList.remove('hidden');
+        };
+
+        window.closeEditModal = function() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        };
+
+        window.saveClassDetails = function(e) {
+            e.preventDefault();
+            const slotIndex = parseInt(document.getElementById('edit-slot-index').value);
+            const shift = window.appState.currentShift;
+            const day = window.appState.currentDay;
+
+            const updatedTitle = document.getElementById('edit-title').value.trim() || 'Slobodan čas';
+
+            window.appState.schedule[shift][day][slotIndex] = {
+                slot: slotIndex + 1,
+                title: updatedTitle,
+                start: document.getElementById('edit-start').value,
+                end: document.getElementById('edit-end').value,
+                room: document.getElementById('edit-room').value.trim(),
+                teacher: document.getElementById('edit-teacher').value.trim(),
+                notes: document.getElementById('edit-notes').value.trim(),
+                color: document.getElementById('edit-color').value
+            };
+
+            closeEditModal();
+            renderScheduleSlots();
+            saveScheduleToFirestore();
+        };
+
+        window.openSyncModal = function() {
+            document.getElementById('sync-code-input').value = window.appState.familyCode;
+            setRole(window.appState.role);
+            document.getElementById('sync-modal').classList.remove('hidden');
+        };
+
+        window.closeSyncModal = function() {
+            document.getElementById('sync-modal').classList.add('hidden');
+        };
+
+        window.setRole = function(r) {
+            window.appState.role = r;
+            const btnP = document.getElementById('btn-role-parent');
+            const btnC = document.getElementById('btn-role-child');
+            if (r === 'parent') {
+                btnP.className = "py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 border-indigo-600 bg-indigo-50 text-indigo-700";
+                btnC.className = "py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 border-slate-200 text-slate-600";
+            } else {
+                btnC.className = "py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 border-emerald-600 bg-emerald-50 text-emerald-700";
+                btnP.className = "py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 border-slate-200 text-slate-600";
+            }
+        };
+
+        window.generateRandomSyncCode = function() {
+            const randomCode = 'PORODICA' + Math.floor(100 + Math.random() * 900);
+            document.getElementById('sync-code-input').value = randomCode;
+        };
+
+        window.saveSyncSettings = function() {
+            const newCode = document.getElementById('sync-code-input').value.trim().toUpperCase() || 'PORODICA1';
+            window.appState.familyCode = newCode;
+            localStorage.setItem('skolski_family_code', newCode);
+            localStorage.setItem('skolski_role', window.appState.role);
+
+            updateRoleUI();
+            closeSyncModal();
+            setupFirestoreListener();
+        };
+
+        window.openLockscreenModal = function() {
+            generateLockscreenCard('tomorrow');
+            document.getElementById('lockscreen-modal').classList.remove('hidden');
+        };
+
+        window.closeLockscreenModal = function() {
+            document.getElementById('lockscreen-modal').classList.add('hidden');
+        };
+
+        window.generateLockscreenCard = function(target) {
+            const btnToday = document.getElementById('ls-btn-today');
+            const btnTomorrow = document.getElementById('ls-btn-tomorrow');
+            let targetDayNum = window.appState.currentDay;
+
+            if (target === 'tomorrow') {
+                targetDayNum = window.appState.currentDay + 1;
+                if (targetDayNum > 5) targetDayNum = 1;
+                btnTomorrow.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white";
+                btnToday.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200";
+            } else {
+                btnToday.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white";
+                btnTomorrow.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200";
+            }
+
+            document.getElementById('ls-day-badge').innerText = `${target === 'tomorrow' ? 'SUTRA • ' : 'DANAS • '}${dayNames[targetDayNum].toUpperCase()}`;
+            document.getElementById('ls-shift').innerText = window.appState.currentShift;
+
+            const list = document.getElementById('ls-list');
+            const shift = window.appState.currentShift;
+            const items = (window.appState.schedule[shift] && window.appState.schedule[shift][targetDayNum]) ? window.appState.schedule[shift][targetDayNum] : [];
+
+            list.innerHTML = items.map((item, idx) => `
+                <div class="bg-slate-800/90 p-2 rounded-xl border border-slate-700/60 flex items-center justify-between">
+                    <div>
+                        <div class="font-bold text-white text-xs">${idx + 1}. ${item.title}</div>
+                        <div class="text-[10px] text-slate-400">${item.room ? 'Kab: ' + item.room : ''} ${item.notes ? '• ' + item.notes : ''}</div>
+                    </div>
+                    <div class="text-[10px] font-mono text-indigo-300 font-bold bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/50">
+                        ${item.start}
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.downloadLockscreenImage = function() {
+            const cardNode = document.getElementById('lockscreen-card-export');
+            html2canvas(cardNode, { scale: 3, backgroundColor: '#0f172a' }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `raspored-lockscreen.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        };
+
+        window.openPrintView = function() {
+            document.getElementById('print-shift-name').innerText = window.appState.currentShift;
+            const tbody = document.getElementById('print-table-body');
+            tbody.innerHTML = '';
+            const shift = window.appState.currentShift;
+
+            for (let slot = 0; slot < 5; slot++) {
+                let tr = document.createElement('tr');
+                let slotNum = slot + 1;
+                let defaultTime = shift === 'A' ? defaultSlotsA[slot] : defaultSlotsB[slot];
+                
+                tr.innerHTML = `
+                    <td class="border border-gray-400 p-2 text-center font-bold">${slotNum}</td>
+                    <td class="border border-gray-400 p-2 text-center text-[10px] text-gray-500">${defaultTime.start}-${defaultTime.end}</td>
+                `;
+
+                for (let day = 1; day <= 5; day++) {
+                    const item = window.appState.schedule[shift][day][slot];
+                    if (item && item.title !== 'Slobodan čas') {
+                        tr.innerHTML += `
+                            <td class="border border-gray-400 p-2">
+                                <div class="font-bold">${item.title}</div>
+                                <div class="text-[10px] text-gray-600">${item.room ? 'Kabinet: ' + item.room : ''}</div>
+                                ${item.notes ? `<div class="text-[9px] text-amber-700 italic">${item.notes}</div>` : ''}
+                            </td>
+                        `;
+                    } else {
+                        tr.innerHTML += `<td class="border border-gray-400 p-2 text-center text-gray-300">-</td>`;
+                    }
+                }
+                tbody.appendChild(tr);
+            }
+
+            window.print();
+        };
+
+        function setupPWA() {
+            const manifest = {
+                "name": "Školski Asistent Live",
+                "short_name": "Raspored",
+                "start_url": ".",
+                "display": "standalone",
+                "background_color": "#4f46e5",
+                "theme_color": "#4f46e5",
+                "icons": [{
+                    "src": "https://cdn-icons-png.flaticon.com/512/2991/2991110.png",
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }]
+            };
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: 'application/json'}));
+            document.head.appendChild(link);
+        }
+    </script>
 </body>
 </html>
