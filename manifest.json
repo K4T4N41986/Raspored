@@ -1,15 +1,25 @@
 {
-  "name": "Raspored časova",
-  "short_name": "Raspored",
+  "name": "Raspored Časova II/4",
+  "short_name": "Raspored II/4",
+  "description": "Interaktivni raspored časova za odeljenje II/4 (prepodnevna i popodnevna smena)",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "sr",
   "icons": [
     {
-      "src": "icon.png",
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
